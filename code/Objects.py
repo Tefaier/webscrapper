@@ -8,7 +8,8 @@ from Chrome import uc, get_driver
 from Settings import SCROLL_PAUSE_TIME, MAX_SCROLL_ATTEMPTS, text_delimeter, MAX_OPEN_ATTEMPTS, output_file, \
     compare_start_ignore, accepted_length_diff, output_file_type, output_file_directory, \
     text_preview_symbols_number, parser_dict_default as PaDD, process_dict_default as PrDD, \
-    sleeping_time, stylise_text, tesseract_path, link_info_part, jum_list, max_page_load_time, page_load_check_intervals
+    sleeping_time, stylise_text, tesseract_path, link_info_part, jum_list, max_page_load_time, page_load_check_intervals, \
+    wait_before_reading as waiting_time, MAX_WAIT_FOR_BUTTON_CLICK_CHANGE as max_click_wait
 from Custom_exceptions import *
 import requests
 import time
@@ -19,8 +20,10 @@ import re
 import sys
 from PIL import Image
 import pytesseract
-from Text_functions import string_with_meaning, convert_utf8_symbols, ask_for_authentification, dict_to_text, string_with_style
+from Text_functions import string_with_meaning, convert_utf8_symbols, ask_for_authentification, dict_to_text, \
+    string_with_style
 from Binary_converter import convert_binary
+from Web_functions import *
 import validators
 
 from docx import Document
@@ -29,10 +32,13 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebElement
+from selenium.webdriver import ActionChains
+
 
 class FieldTypes(Enum):
     Text = 1
     Image = 2
+
 
 class File():
     file_wrapper: object
@@ -51,7 +57,7 @@ class File():
 
     def create_instance(self):
         if self.file_type == "txt":
-            return open(self.create_full_path(), 'a', encoding='utf-8')
+            return open(self.create_full_path(), 'w', encoding='utf-8')
         elif self.file_type == "html":
             file = open(self.create_full_path(), 'w', encoding='utf-8')
             file.write("<html>\n<head></head>\n<body>\n")
@@ -76,7 +82,7 @@ class File():
                 p = self.file_wrapper.add_paragraph()
                 p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                 r = p.add_run()
-                r.add_picture(new_file)#, width=Cm(image_width))
+                r.add_picture(new_file)  # , width=Cm(image_width))
             except:
                 return
 
@@ -88,7 +94,6 @@ class File():
         elif self.file_type == "html":
             self.file_wrapper.write("</body>")
             self.file_wrapper.close()
-
 
 
 class Process:
@@ -104,6 +109,7 @@ class Process:
     open_attempts: int
     write_file: File
     to_sleep: bool
+    to_wait: bool
 
     block_screen: bool
     block_input_type: str
@@ -111,7 +117,6 @@ class Process:
     block_input_content: str
     block_button_type: str
     block_button_limit: dict
-
 
     def __init__(self, input: dict):
         self.input_dict = input
@@ -123,6 +128,7 @@ class Process:
         self.minimum_length = input.get("min_len", PrDD.get("min_len"))
         self.clear_cookies = input.get("clearing", PrDD.get("clearing"))
         self.to_sleep = input.get("sleep", PrDD.get("sleep"))
+        self.to_wait = input.get("wait", PrDD.get("wait"))
 
         self.block_screen = input.get("block_screen", PrDD.get("block_screen"));
         self.block_input_type = input.get("input_type", PrDD.get("input_type"));
@@ -143,22 +149,27 @@ class Process:
     def initialise_driver(self):
         self.driver = get_driver(self.input_dict) if self.chrome_used else None
 
-    def get_soup(self, url: str):
+    def get_soup(self, url: str, extra_logic=True):
         if self.to_sleep and self.open_attempts == 0:
             time.sleep(sleeping_time)
 
         self.open_attempts = 1
-        if self.chrome_used:
+        if self.chrome_used and (extra_logic or self.driver.current_url != url):
             if "javascript" in url:
+                previous_url = self.driver.current_url
                 self.driver.execute_script(url)
+                if previous_url == self.driver.current_url:
+                    raise NextChapterNotReachedException("javasxript " + url + " didn't change url")
             elif self.driver.current_url == url:
                 self.driver.refresh()
             else:
                 self.driver.get(url)
-            if self.scroll_used:
-                self.execute_scrolling()
+        if self.chrome_used and self.scroll_used:
+            self.execute_scrolling()
 
         if self.chrome_used:
+            if self.to_wait:
+                time.sleep(waiting_time)
             r = self.driver.page_source
         else:
             r = requests.get(url).content.decode('utf8')
@@ -192,18 +203,17 @@ class Process:
     def block_screen_talk(self):
         if self.block_input_type != None:
             input_field = self.driver.find_element(By.CSS_SELECTOR,
-                f"{self.block_input_type}[{dict_to_text(self.block_input_limit, '=', ', ')}]")
+                                                   f"{self.block_input_type}[{dict_to_text(self.block_input_limit, '=', ', ')}]")
             if input_field != None:
                 input_field.send_keys(self.block_input_content)
             else:
                 raise TargetNotFoundException("Failed to find input field")
         button_field = self.driver.find_element(By.CSS_SELECTOR,
-                f"{self.block_button_type}[{dict_to_text(self.block_button_limit, '=', ', ')}]")
+                                                f"{self.block_button_type}[{dict_to_text(self.block_button_limit, '=', ', ')}]")
         if button_field != None:
             button_field.click()
         else:
             raise TargetNotFoundException("Failed to find button field")
-
 
     def refresh(self, url: str):
         if self.block_screen and self.chrome_used:
@@ -246,7 +256,7 @@ class Process:
         elif type(string) == list:
             for part in string:
                 self.write_text(part)
-            #self.write_file.write_text(convert_utf8_symbols('\n'.join(string)) + '\n')
+            # self.write_file.write_text(convert_utf8_symbols('\n'.join(string)) + '\n')
         elif type(string) == NavigableString:
             self.write_text(str(string.string))
 
@@ -265,6 +275,11 @@ class Process:
 
         self.soup = BeautifulSoup(r, 'html.parser')
         return self.soup
+
+    def press_element(self, element: Tag):
+        if self.chrome_used:
+            web_element = self.driver.find_element(By.XPATH, xpath_soup(element))
+            self.driver.execute_script("arguments[0].click();", web_element)
 
 
 class Parser:
@@ -289,12 +304,15 @@ class Parser:
     text_intelligent: bool
     text_expected_languages: list
     put_intelligent: bool
+    press_link: bool
+    link_reload: bool
+    link_pure_click: bool
 
-    text: list # used
-    processed_text: list # used
-    title: str # not used
-    link: str # used
-    images: list # used
+    text: list  # used
+    processed_text: list  # used
+    title: str  # not used
+    link: str  # used
+    images: list  # used
 
     # parsing settings - search
     text_limit: dict
@@ -312,7 +330,7 @@ class Parser:
     title_cont: str
     link_cont: str
 
-    #text_reader: type(easyocr.Reader)
+    # text_reader: type(easyocr.Reader)
 
     def __init__(self, process: Process, input: dict):
         self.process = process
@@ -328,6 +346,9 @@ class Parser:
         self.current_url = input.get("url", "")
         self.clean_equal = input.get("clean_equal", PaDD.get("clean_equal"))
         self.clean_empty = input.get("clean_empty", PaDD.get("clean_empty"))
+        self.press_link = input.get("press_link", PaDD.get("press_link"))
+        self.link_reload = input.get("link_sleep_and_reload", PaDD.get("link_sleep_and_reload"))
+        self.link_pure_click = input.get("link_pure_click", PaDD.get("link_pure_click"))
 
         self.text_holder = input.get("text_h", PaDD.get("text_h"))
         self.title_holder = input.get("title_h", PaDD.get("title_h"))
@@ -354,18 +375,40 @@ class Parser:
     def set_reader(self):
         if self.text_intelligent and self.text_expected_languages is not None:
             pass
-            #self.text_reader = easyocr.Reader(self.text_expected_languages, gpu=True)
+            # self.text_reader = easyocr.Reader(self.text_expected_languages, gpu=True)
 
-    def set_url(self, url: str, domain: str):
+    def set_url(self, url_link: Tag, domain: str):
+        if self.press_link and self.process.chrome_used:
+            self.process.press_element(url_link)
+            if self.link_reload:
+                start_time = time.time()
+                while time.time() - start_time < max_click_wait:
+                    time.sleep(0.1)
+                    if self.current_url != self.process.driver.current_url:
+                        break
+                if self.current_url == self.process.driver.current_url: raise LinkException("Pressing located link didn't change url")
+                self.process.get_soup(self.process.driver.current_url, extra_logic=True)
+                self.current_url = self.process.driver.current_url
+            elif self.link_pure_click:
+                self.process.get_soup(self.process.driver.current_url, extra_logic=False)
+                self.current_url = self.process.driver.current_url
+            else:
+                if self.current_url == self.process.driver.current_url:
+                    raise LinkException("Pressing located link didn't change url")
+                self.current_url = self.process.driver.current_url
+            return
+        self.direct_set_url(url_link.get("href"), domain)
+
+    def direct_set_url(self, url: str, domain: str):
         if domain in url or "javascript" in url:
             self.current_url = url
         else:
             self.current_url = "https://" + domain + ('' if url.startswith('/') else '/') + url
 
-    def process_page(self):
+    def process_page(self, is_last=False):
         try:
             self.process.open_attempts = 0
-            self.soup = self.process.get_soup(self.current_url)
+            self.soup = self.process.get_soup(self.current_url, extra_logic=(not self.press_link))
             self.page_open_time = time.time()
         except:
             raise Exception("Error with page opening")
@@ -373,22 +416,26 @@ class Parser:
         # opening page, waiting for it to load, refreshing if needed, checking if loaded successfully
         while True:
             try:
-                self.retrieve_content()
-                if self.check_pass() or ask_for_authentification("Content error, text: " +
-                                                                 "\n".join(self.convert_to_strings(self.text))[:(text_preview_symbols_number
-                                                                 if len("".join(self.convert_to_strings(self.text))) > text_preview_symbols_number
-                                                                 else -1)] + "..."):
-                    break
-                else:
-                    raise CommandException("Retry command")
-            except HolderNotFoundException:
-                if max_page_load_time == 0 or self.process.chrome_used is False:
-                    raise Exception("Unsupported error")
-                if time.time() - self.page_open_time > max_page_load_time:
-                    raise MaxOpeningTimeExceeded("Maximum opening time was exceeded while opening " + self.current_url)
-                time.sleep(page_load_check_intervals)
-                self.soup = self.process.update_content()
-            except CommandException:
+                try:
+                    self.retrieve_content()
+                    if self.check_pass() or ask_for_authentification("Content error, text: " +
+                                                                     "\n".join(self.convert_to_strings(self.text))[
+                                                                     :(text_preview_symbols_number
+                                                                     if len("".join(self.convert_to_strings(
+                                                                         self.text))) > text_preview_symbols_number
+                                                                     else -1)] + "..."):
+                        break
+                    else:
+                        raise CommandException("Retry command")
+                except HolderNotFoundException:
+                    if max_page_load_time == 0 or self.process.chrome_used is False:
+                        raise Exception("Unsupported error")
+                    if time.time() - self.page_open_time > max_page_load_time:
+                        raise MaxOpeningTimeExceededException(
+                            "Maximum opening time was exceeded while opening " + self.current_url)
+                    time.sleep(page_load_check_intervals)
+                    self.soup = self.process.update_content()
+            except (CommandException, MaxOpeningTimeExceededException):
                 self.soup = self.process.refresh(self.current_url)
                 self.page_open_time = time.time()
                 if self.soup is None:
@@ -412,7 +459,7 @@ class Parser:
         else:
             self.combined_write()
         # get and use link
-        return self.retrieve_link()
+        return self.current_url if is_last else self.retrieve_link()
 
     def combined_write(self):
         # combine self.text and self.images and write them in the file in the suitable order
@@ -435,7 +482,8 @@ class Parser:
 
         for imageUnit in self.images:
             if isinstance(imageUnit, Tag):
-                ordered_content.append([imageUnit.sourceline, imageUnit.sourcepos, FieldTypes.Image, self.get_image_content(imageUnit)])
+                ordered_content.append(
+                    [imageUnit.sourceline, imageUnit.sourcepos, FieldTypes.Image, self.get_image_content(imageUnit)])
 
         ordered_content.sort(key=lambda x: (x[0], x[1]))
 
@@ -446,18 +494,19 @@ class Parser:
                 if answer is not None:
                     self.process.write_text(answer)
                 else:
-                    self.processed_text.pop(0) # just to show how many were erased
+                    self.processed_text.pop(0)  # just to show how many were erased
             elif unit[2] == FieldTypes.Image:
                 image = unit[3]
                 self.process.write_image(image)
 
     def retrieve_images(self):
         if self.text_limit != None:
-            self.images = self.get_search_results(holder_type = 'div', holder_limit = self.text_limit, target_type = "img", accept_zero = True)
+            self.images = self.get_search_results(holder_type='div', holder_limit=self.text_limit, target_type="img",
+                                                  accept_zero=True)
         else:
-            self.images = self.get_search_results(target_type = "img", accept_zero = True)
+            self.images = self.get_search_results(target_type="img", accept_zero=True)
         self.get_true_content_image()
-        #self.get_images_content()
+        # self.get_images_content()
 
     def get_image_content(self, image: PageElement):
         try:
@@ -480,26 +529,31 @@ class Parser:
 
     def retrieve_content(self):  # soup already received
         if self.split_by_tags != None:
-            unit = self.get_search_results(target_type = 'div', target_limit = self.text_limit, target_pointer = 0)
+            unit = self.get_search_results(target_type='div', target_limit=self.text_limit, target_pointer=0)
             index = 0
             while index < len(unit.contents):
                 if type(unit.contents[index]) == Tag:
-                    if unit.contents[index].name in self.split_by_tags and not string_with_meaning(unit.contents[index].text):
+                    if unit.contents[index].name in self.split_by_tags and not string_with_meaning(
+                            unit.contents[index].text):
                         unit.contents[index].replaceWith(self.delimiter)
-                        index+=1
+                        index += 1
                     else:
                         unit.contents[index].unwrap()
                 else:
-                    index+=1
+                    index += 1
             self.text = re.sub(f"[{self.delimiter}]+", self.delimiter, unit.get_text()).split(self.delimiter)
         else:
             if self.text_limit != None:
                 if self.text_cont is not None:
-                    self.text = self.get_search_results(holder_type = self.text_cont, holder_limit = self.text_limit, target_type = self.text_holder)
+                    self.text = self.get_search_results(holder_type=self.text_cont, holder_limit=self.text_limit,
+                                                        target_type=self.text_holder)
                 else:
-                    self.text = self.get_search_results(target_limit = self.text_limit, target_type = self.text_holder)
+                    self.text = self.get_search_results(target_limit=self.text_limit, target_type=self.text_holder)
             else:
-                self.text = self.get_search_results(target_type = self.text_holder)
+                if self.text_cont is not None:
+                    self.text = self.get_search_results(holder_type=self.text_cont, target_type=self.text_holder)
+                else:
+                    self.text = self.get_search_results(target_type=self.text_holder)
         if self.text_intelligent:
             self.parse_styles()
             self.intelligent_filter(self.text)
@@ -540,11 +594,13 @@ class Parser:
             if self.title_holder == "empty":
                 return ""
             if self.title_limit != None and self.title_cont != None:
-                return self.get_search_results(holder_type = self.title_cont, holder_limit = self.title_limit, target_type = self.title_holder, target_pointer = self.title_pointer).text
+                return self.get_search_results(holder_type=self.title_cont, holder_limit=self.title_limit,
+                                               target_type=self.title_holder, target_pointer=self.title_pointer).text
             elif self.title_limit != None:  # limit by it itself
-                return self.get_search_results(target_type = self.title_holder, target_limit = self.title_limit, target_pointer = self.title_pointer).text
+                return self.get_search_results(target_type=self.title_holder, target_limit=self.title_limit,
+                                               target_pointer=self.title_pointer).text
             elif self.title_cont != None:
-                return self.get_search_results(holder_type = self.title_cont, target_type=self.title_holder,
+                return self.get_search_results(holder_type=self.title_cont, target_type=self.title_holder,
                                                target_pointer=self.title_pointer).text
             else:
                 return self.get_search_results(target_type=self.title_holder, target_pointer=self.title_pointer).text
@@ -556,11 +612,17 @@ class Parser:
     def retrieve_link(self):
         if self.link_limit != None:
             if self.link_cont != None:
-                return self.get_search_results(holder_type = self.link_cont, holder_limit = self.link_limit, target_type = self.link_holder, target_pointer = self.link_pointer).get('href')
+                return self.get_search_results(holder_type=self.link_cont, holder_limit=self.link_limit,
+                                               target_type=self.link_holder, target_pointer=self.link_pointer)
             else:
-                return self.get_search_results(target_type = self.link_holder, target_limit = self.link_limit, target_pointer = self.link_pointer).get('href')
+                return self.get_search_results(target_type=self.link_holder, target_limit=self.link_limit,
+                                               target_pointer=self.link_pointer)
         else:
-            return self.get_search_results(target_type = self.link_holder, target_pointer = self.link_pointer).get('href')
+            if self.link_cont != None:
+                return self.get_search_results(target_type=self.link_holder, holder_type=self.link_cont,
+                                               target_pointer=self.link_pointer)
+            else:
+                return self.get_search_results(target_type=self.link_holder, target_pointer=self.link_pointer)
 
     def get_true_content(self):
         if (len(self.text) > self.left_exclude and self.left_exclude != 0):
@@ -619,7 +681,8 @@ class Parser:
                 self.pre_phrase = new_phrase
             return
 
-    def get_search_results(self, holder_type = None, holder_limit = None, target_type = None, target_limit = None, target_pointer = None, accept_zero = False):
+    def get_search_results(self, holder_type=None, holder_limit=None, target_type=None, target_limit=None,
+                           target_pointer=None, accept_zero=False):
         if target_type == None:
             raise UnsupportedArgumentsException("Search type wasn't given")
         holder = None
@@ -642,8 +705,10 @@ class Parser:
                 results = holder.find_all(target_type, **target_limit)
         else:
             results = holder.find_all(target_type)
-        if (target_pointer != None and len(results) <= target_pointer) or ((len(results) == 0) and not accept_zero):  # error check
-            raise TargetNotFoundException(f"Unable to find target using holder {holder_type} and {holder_limit}, target {target_type} - {target_limit} - {target_pointer}")
+        if (target_pointer != None and len(results) <= target_pointer) or (
+                (len(results) == 0) and not accept_zero):  # error check
+            raise TargetNotFoundException(
+                f"Unable to find target using holder {holder_type} and {holder_limit}, target {target_type} - {target_limit} - {target_pointer}")
         if target_pointer != None:
             return results[target_pointer]
         else:
@@ -667,7 +732,7 @@ class Parser:
                     continue
                 if self.process.chrome_used and self.jummed_text(child):
                     child.replace_with(self.get_view_content(child))
-                    #child.text = self.get_view_content(child)
+                    # child.text = self.get_view_content(child)
 
     def check_visibility(self, element: PageElement):
         style_name = "style"
@@ -688,28 +753,30 @@ class Parser:
                     parsed_properties.get("display", "Yes") == "none")
 
     def get_view_content(self, element: Tag):
-        #if (self.text_reader == None):
+        # if (self.text_reader == None):
         #    self.set_reader()
-        xpath = self.xpath_soup(element)
+        xpath = xpath_soup(element)
         self.unwrap_xpath(xpath)
         obj = self.process.driver.find_element(By.XPATH, xpath)
-        #self.process.driver.execute_script("arguments[0].setAttribute(arguments[1], arguments[2]);", obj, style_for_padding.get("type"), style_for_padding.get("value")) # почему-то делает отступ у первой строки и левая граница берется по ней
+        # self.process.driver.execute_script("arguments[0].setAttribute(arguments[1], arguments[2]);", obj, style_for_padding.get("type"), style_for_padding.get("value")) # почему-то делает отступ у первой строки и левая граница берется по ней
         self.process.driver.execute_script("arguments[0].scrollIntoView(true);", obj)
 
-        #image_data = base64.b64decode(obj.screenshot_as_base64)
+        # image_data = base64.b64decode(obj.screenshot_as_base64)
         image_data = self.get_screen_of_element(obj, 5, 5)
 
         result = pytesseract.image_to_string(Image.open(BytesIO(image_data)), lang=self.text_expected_languages)
-        #result = self.text_reader.readtext(image_data, paragraph = True, detail = 0, mag_ratio = 2, blocklist = [';', ':', '|'], low_text = 0.25)
+        # result = self.text_reader.readtext(image_data, paragraph = True, detail = 0, mag_ratio = 2, blocklist = [';', ':', '|'], low_text = 0.25)
         return re.sub(r"\n+", " ", result).replace('|', 'I')
 
     def get_screen_of_element(self, element: WebElement, offset_x: int, offset_y: int):
-        normalise = lambda val, hor, limits: min(max(val, limits[0][0] if hor else limits[0][1]), limits[1][0] if hor else limits[1][1])
+        normalise = lambda val, hor, limits: min(max(val, limits[0][0] if hor else limits[0][1]),
+                                                 limits[1][0] if hor else limits[1][1])
         l = element.location_once_scrolled_into_view
         s = element.size
         limits = []
         limits.append([0, 0])
-        limits.append([self.process.driver.get_window_size().get('width'), self.process.driver.get_window_size().get('height')])
+        limits.append(
+            [self.process.driver.get_window_size().get('width'), self.process.driver.get_window_size().get('height')])
         tup = (
             normalise(l['x'] - offset_x, True, limits),
             normalise(l['y'] - offset_y, False, limits),
@@ -719,7 +786,8 @@ class Parser:
 
         screen_image = base64.b64decode(self.process.driver.get_screenshot_as_base64())
         image = Image.open(io.BytesIO(screen_image))
-        scale = image.size[0] / limits[1][0] # shows scale of image relative to screen by width (should be the same by height)
+        scale = image.size[0] / limits[1][
+            0]  # shows scale of image relative to screen by width (should be the same by height)
         tup = tuple((int)(scale * elem) for elem in tup)
         image = image.crop(tup)
         # image.show()  # comment later
@@ -727,25 +795,9 @@ class Parser:
         image.save(buffer, format="PNG")
         return buffer.getvalue()
 
-
     def jummed_text(self, element: Tag):
-        return (element.has_attr("class") and any(jum_class in element["class"] for jum_class in jum_list)) or any((type(elem) == Tag and self.jummed_text(elem)) for elem in element.contents)
-
-    def xpath_soup(self, element):  # from https://gist.github.com/ergoithz/6cf043e3fdedd1b94fcf
-        # type: (typing.Union[bs4.element.Tag, bs4.element.NavigableString]) -> str
-        components = []
-        child = element if element.name else element.parent
-        for parent in child.parents:  # type: bs4.element.Tag
-            siblings = parent.find_all(child.name, recursive=False)
-            components.append(
-                child.name if 1 == len(siblings) else '%s[%d]' % (
-                    child.name,
-                    next(i for i, s in enumerate(siblings, 1) if s is child)
-                )
-            )
-            child = parent
-        components.reverse()
-        return '/%s' % '/'.join(components)
+        return (element.has_attr("class") and any(jum_class in element["class"] for jum_class in jum_list)) or any(
+            (type(elem) == Tag and self.jummed_text(elem)) for elem in element.contents)
 
     def unwrap_xpath(self, xpath):
         parts = xpath.split('/')
@@ -769,4 +821,3 @@ class Parser:
                         propertyname = item.name
                         value = item.value
                         self.css_classes[style][propertyname] = value
-

@@ -8,8 +8,8 @@ def get_driver(chosen_dict: dict):
     chrome_dir = chosen_dict.get("chrome_dir", PrDD.get("chrome_dir"))
     chrome_profile = chosen_dict.get("chrome_profile", PrDD.get("chrome_profile"))
 
-    if chrome_dir is not None and chrome_profile is not None:
-        driver = usual(chosen_dict)
+    if chrome_dir is not None and chrome_profile is not None and not chosen_dict.get("chrome_undetected", PrDD.get("chrome_undetected")):
+        driver = usual(chrome_dir, chrome_profile)
     else:
         driver = undetected()
 
@@ -34,6 +34,6 @@ def usual(chrome_dir, chrome_profile):
     options.add_argument("--no-first-run")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("disable-infobars");
+    options.add_argument("disable-infobars")
     options.add_argument("--start-maximized")
     return webdriver.Chrome(service=service, options=options)

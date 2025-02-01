@@ -1,7 +1,7 @@
 from Objects import Process, Parser
 from Settings import active_parser_dicts, active_process_dicts
 
-StartingURL = "https://fast.novelupdates.net/book/a-budding-scientist-in-a-fantasy-world/chapter-97"
+StartingURL = "https://ranobes.top/salvos-v741610-1205083/2720613.html"
 def write_log(part: int, paragraphs_clear: int, paragraphs_cleaned: int):
     print(f"Part {part} is done! {paragraphs_clear} were detected and {paragraphs_cleaned} were left")
 
@@ -13,10 +13,12 @@ def read_pages(start_page = StartingURL, parts_to_make = 1):
         active_parser = Parser(active_process, active_parser_dicts[website])
     except:
         raise Exception("Unsupported error occurred during initialisation")
-    active_parser.set_url(start_page, website)
+    active_parser.direct_set_url(start_page, website)
     try:
         while console_part <= parts_to_make:
-            active_parser.set_url(active_parser.process_page(), website)
+            result = active_parser.process_page(console_part == parts_to_make)
+            if console_part != parts_to_make:
+                active_parser.set_url(result, website)
             write_log(console_part, len(active_parser.text), len(active_parser.processed_text))
             console_part += 1
     finally:
