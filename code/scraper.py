@@ -1,7 +1,7 @@
-from Objects import Process, Parser
-from Settings import active_parser_dicts, active_process_dicts
+from old_flow import Process, Parser
+from settings import active_parser_dicts, active_process_dicts
 
-StartingURL = "https://ranobes.top/salvos-v741610-1205083/2720613.html"
+StartingURL = "https://ranobelib.me/ru/26843--i-am-the-god-of-games/read/v1/c150"
 def write_log(part: int, paragraphs_clear: int, paragraphs_cleaned: int):
     print(f"Part {part} is done! {paragraphs_clear} were detected and {paragraphs_cleaned} were left")
 

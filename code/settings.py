@@ -6,20 +6,21 @@ screen_w = user32.GetSystemMetrics(0)
 screen_h = user32.GetSystemMetrics(1)
 
 # editable
-output_file_directory = "output/"  # directory where to save results, empty by default
+output_file_directory = "../temp/output/"  # directory where to save results, empty by default
 output_file = "output"  # name to output file
-output_file_type = "html"  # extension of output file, only html|txt|docx are supported
+output_file_type = "txt"  # extension of output file, only html|txt|docx are supported
 
 image_width = 12  # image width in cm to put in word
-window_w = 1000  # chrome window width
-window_h = 700  # chrome window height
+window_w = 1920  # chrome window width
+window_h = 1080  # chrome window height
 chrome_driver_path = "C:/Users/timab/Downloads/chromedriver-win64/chromedriver.exe"  # path to chromedriver
 tesseract_path = "C:/Program Files/Tesseract-OCR/tesseract.exe"  # path to tesseract
 
-max_page_load_time = 0  # how much to wait for the page to load its chapter holder, works only with chrome
-page_load_check_intervals = 0  # intervals between checking if the page was loaded
-sleeping_time = 0.3  # forced sleep time before reading page in case sleep is True in process settings
-SCROLL_PAUSE_TIME = 0.5  # pause time for scrolling page in case scroll is True in process settings
+max_page_load_time = 1  # how much to wait for the page to load its chapter holder, works only with chrome
+page_load_check_intervals = 1  # intervals between checking if the page was loaded
+sleeping_time = 1  # forced sleep time before reading page in case sleep is True in process settings
+wait_before_reading = 4 # 2  # can be used with chrome to parse text only after some time page being opened
+SCROLL_PAUSE_TIME = 2 # 0.5  # pause time for scrolling page in case scroll is True in process settings
 MAX_SCROLL_ATTEMPTS = 20  # max page scroll attempts in case scroll is True in process settings
 text_delimeter = "###"  # used if tags_used is not None in parser settings
 MAX_OPEN_ATTEMPTS = 3  # maximum attempts to open page
@@ -29,6 +30,7 @@ text_preview_symbols_number = 100  # shows this number of symbols when program a
 stylise_text = True  # no idea what it makes
 link_info_part = ['src', 'data-src', 'data-breeze']  # what parts to check inside link tag for the link text
 jum_list = ["jum", "jmbl"]  # css classes associated with jumbled text
+MAX_WAIT_FOR_BUTTON_CLICK_CHANGE = 10
 
 # default process settings
 process_dict_default = {"chrome": False,  # shows if chrome should be used
@@ -44,33 +46,35 @@ process_dict_default = {"chrome": False,  # shows if chrome should be used
                         "button_type": None,  # used if button to press, works only if block_screen is True
                         "button_limit": None,  # used to find button to press, works only if button_type is not None
                         "sleep": False,  # if to sleep between chapters
-                        "chrome_dir": "C:\\Users\\timab\\AppData\\Local\\Google\\Chrome\\User Data",  # location of chrome directory, works only if chrome is True and chrome_undetected is False
-                        "chrome_profile": "Profile 1"  # name of directory of profile to use inside of chrome_dir, works only if chrome is True and chrome_undetected is False and chrome_dir is not None
+                        "wait": False,  # if to wait before reading content
+                        "chrome_dir": "C:\\Users\\timab\\PycharmProjects\\webscrapper\\dependencies\\selenium_chrome",  # location of chrome directory, works only if chrome is True and chrome_undetected is False
+                        "chrome_profile": "Profile 1",  # name of directory of profile to use inside of chrome_dir, works only if chrome is True and chrome_undetected is False and chrome_dir is not None
                         }
 active_process_dicts = {"ranobehub.org": {"chrome": False},
                         "jaomix.ru": {"chrome": False},
                         "ranobes.com": {"chrome": True},
-                        "ranobes.net": {"chrome": True},
-                        "ranobelib.me": {"chrome": True},
+                        "ranobes.net": {"chrome": True, "sleep": True},
+                        "ranobelib.me": {"chrome": True, "sleep": True},
                         "tl.rulate.ru": {"chrome": True, "min_len": 2000, "block_screen": True, "button_type": "",
                                          "button_limit": {"name": "ok"}},
-                        "www.wattpad.com": {"chrome": True, "scroll": True, "min_par": 1},
+                        "www.wattpad.com": {"chrome": True, "scroll": True, "min_par": 1, "wait": True},
                         "www.readlightnovel.me": {"chrome": False},
                         "www.mtlnovel.com": {"chrome": True, "clearing": True, "sleep": True},
+                        "www.mtlnovels.com": {}, # {"chrome": True, "clearing": True, "chrome_undetected": True},
                         "18.foxaholic.com": {"chrome": True},
                         "www.foxaholic.com": {"chrome": True},
                         "rainbow-reads.com": {"chrome": False},
                         "danmeiextra.home.blog": {"chrome": False},
                         "younettranslate.com": {"chrome": False},
                         "strictlybromance.com": {"chrome": True},
-                        "chrysanthemumgarden.com": {"chrome": True},
+                        "chrysanthemumgarden.com": {"chrome": True, "chrome_undetected": False, "wait": True},
                         "kinkytranslations.com": {"chrome": False},
                         "www.isotls.com": {"chrome": False},
                         "www.royalroad.com": {"chrome": False},
                         "exiledrebelsscanlations.com": {"chrome": False},
                         "moonlightnovel.com": {"chrome": False},
                         "www.novelcool.com": {"chrome": True},
-                        "dummynovels.com": {"chrome": False},
+                        "dummynovels.com": {"chrome": False, "chrome_undetected": True},
                         "www.wuxiaworld.eu": {"chrome": False},
                         "www.wuxiabee.com": {"chrome": True},
                         "www.asianovel.net": {"chrome": True, "sleep": False},
@@ -83,20 +87,43 @@ active_process_dicts = {"ranobehub.org": {"chrome": False},
                         "bambootriangle.wordpress.com": {},
                         "whiteskytranslations.wordpress.com": {},
                         "novelbin.englishnovel.net": {},
-                        "novelbin.novelminute.org": {},
+                        "novelbjn.novelupdates.net": {"chrome": True, "wait": True},
                         "neondragonfly.org": {},
                         "www.lightnovelworld.co": {"chrome": True},
                         "lightnovel.novelcenter.net": {},
                         "secondlifetranslations.com": {"chrome": True},
-                        "www.webnovelpub.pro": {"chrome": True},
-                        "fast.novelupdates.net": {}}
+                        "www.webnovelpub.pro": {"chrome": True, "chrome_undetected": False},
+                        "fast.novelupdates.net": {},
+                        "ckandawrites.online": {},
+                        "knoxt.space": {},
+                        "renovels.org": {"chrome": True, "wait": True},
+                        "novelbin.com": {"chrome": True},
+                        "wuxia.click": {"chrome": True, "sleep": True},
+                        "shanghaifantasy.com": {"chrome": True, "wait": True},
+                        "novelbin.lanovels.net": {"chrome": True},
+                        "m.novel-cat.com": {"chrome": True, "wait": True},
+                        "www.goodnovel.com": {},
+                        "tapas.io": {"chrome": True, "wait": True},
+                        "silver-prince.com": {"chrome": True, "wait": True},
+                        "www.novelhall.com": {"chrome": True, "chrome_undetected": False},
+                        "ranobes.top": {"chrome": True, "chrome_undetected": True},
+                        "www.fanmtl.com": {"chrome": True},
+                        "author.today": {"chrome": True, "wait": True},
+                        "wtr-lab.com": {"chrome": True},
+                        "sleepytranslations.com": {"chrome": True},
+                        "www.silknovel.com": {},
+                        "loomywoods.com": {"chrome": True},
+                        "littlepinkstarfish.com": {},
+                        "snowlyme.com": {"chrome": True},
+                        "bittercoffeetranslations.com": {"chrome": True, "wait": True},
+                        "huitranslation.com": {}}
 
 parser_dict_default = {"left": 0,  # number of text paragraphs to exclude at the beginning of each chapter
                        "right": 0,  # number of text paragraphs to exclude at the end of each chapter
                        "text_h": "p",  # html container of text
                        "text_l": None,  # limit for finding text, applied to text_container
                        "text_container": "div",  # html container in which all the text is
-                       "text_intelligent": False,  # if to read text using image recognition when it is jummed
+                       "text_intelligent": False,  # if to read text using image recognition when it is jummed and ignore hidden text
                        "text_lang": None,  # expected text language, works if text_intelligent is True
                        "title_h": "title",  # html tag of title or special enum - "title" = use page title - "empty" = don't put it
                        "title_l": None,  # limit for finding title, applied to title_container if not None, else to title_h
@@ -112,20 +139,21 @@ parser_dict_default = {"left": 0,  # number of text paragraphs to exclude at the
                        "images": False,  # if to expect and parse images that are inside text_container, requires output file extension to be html or docs
                        "left_image": 0,  # number of images to exclude at the beginning of each chapter
                        "right_image": 0,  # number of images to exclude at the end of each chapter
-                       "put_intelligent": True  # if to put text + images in the order using their place in html page
-                       }
+                       "put_intelligent": True,  # if to put text + images in the order using their place in html page
+                       "press_link": True,
+                       "link_sleep_and_reload": False,
+                       "link_pure_click": False}
 # some settings, a few are outdated, a few use outdated set of settings
 active_parser_dicts = {"ranobehub.org": {"left": 0, "right": 4,
-                                         "text_h": "p", "text_l": None,
-                                         "title_h": "title", "title_l": None,
+                                         "text_h": "p", "text_container": None,
+                                         "title_h": "h1",
                                          "link_h": "a", "link_l": {'data-hotkey': 'right'}},
                        "jaomix.ru": {"left": 2, "right": 3,
                                      "text_h": "p", "text_l": None,
                                      "title_h": "h1", "title_l": None,
                                      "link_h": "a", "link_l": {'class': 'next'}, "link_p": 0, "link_container": 'li'},
-                       "ranobes.com": {"left": 0, "right": 0, "tags_used": ["br", "div"],
-                                       "text_h": "p", "text_l": {"id": "arrticle"},
-                                       "title_h": "title", "title_l": None,
+                       "ranobes.com": {"text_h": ["p", "blockquote"], "text_l": {"id": "arrticle"}, # "tags_used": ["br", "div"]
+                                       "title_h": "h1",
                                        "link_h": "a", "link_l": {'id': 'next'}},
                        "ranobes.net": {"left": 0, "right": 0,
                                        "text_h": "p", "text_l": None,
@@ -134,7 +162,7 @@ active_parser_dicts = {"ranobehub.org": {"left": 0, "right": 4,
                        "ranobelib.me": {"left": 0, "right": 0, "images": True,
                                         "text_h": "p", "text_l": {"class": "text-content"},
                                         "title_h": "h1",
-                                        "link_h": "a", "link_l": {'class': 'sj_eb'}, "link_p": -1, "link_container": "div"},
+                                        "link_h": "a", "link_l": {'class': 'wa_p'}, "link_p": -1, "link_container": "div"},
                        "tl.rulate.ru": {"left": 0, "right": 1,
                                         "text_h": "p", "text_l": {"class": "content-text"},
                                         "title_h": "title",
@@ -149,6 +177,10 @@ active_parser_dicts = {"ranobehub.org": {"left": 0, "right": 4,
                                                  "link_h": "a", "link_l": {"class": "next next-link"}},
                        "www.mtlnovel.com": {"left": 0, "right": 0,
                                             "text_h": "p", "text_l": None,
+                                            "title_h": "h1", "title_l": None,
+                                            "link_h": "a", "link_l": {"class": "next"}},
+                       "www.mtlnovels.com": {"left": 0, "right": 0,
+                                            "text_h": "p", "text_l": {"class", "par"},
                                             "title_h": "h1", "title_l": None,
                                             "link_h": "a", "link_l": {"class": "next"}},
                        "18.foxaholic.com": {"left": 0, "right": 0,
@@ -176,7 +208,7 @@ active_parser_dicts = {"ranobehub.org": {"left": 0, "right": 4,
                                                 "title_h": "title", "title_l": None,
                                                 "link_h": "a", "link_l": {"class": "wp-next-post-navi-next"}, "link_by_div": True},
                        "chrysanthemumgarden.com": {"left": 0, "right": 0,
-                                                   "text_h": "p", "text_l": {"id": "novel-content"}, "text_intelligent": True, "text_lang": ["en"],
+                                                   "text_h": "p", "text_l": {"id": "novel-content"}, "text_intelligent": True, "text_lang": ["eng"],
                                                    "title_h": "title", "title_l": None,
                                                    "link_h": "a", "link_l": {"class": "nav-next"}, "images": True},
                        "kinkytranslations.com": {"left": 1, "right": 1, "left_image": 1,
@@ -239,9 +271,10 @@ active_parser_dicts = {"ranobehub.org": {"left": 0, "right": 4,
                        "novelbin.englishnovel.net": {"text_h": "p", "text_l": {"id": "chr-content"},
                                                      "title_h": "h4",
                                                      "link_h": "a", "link_l": {"id": "chr-nav-top"}, "link_container": "div", "link_p": -1},
-                       "novelbin.novelminute.org": {"text_h": "p", "text_l": {"id": "chr-content"},
-                                                    "title_h": "h3",
-                                                    "link_h": "a", "link_l": {"id": "chr-nav-top"}, "link_container": "div", "link_p": -1},
+                       "novelbjn.novelupdates.net": {"text_h": "p", "text_l": {"id": "chr-content"},
+                                                    "title_h": "h2",
+                                                    "link_h": "a", "link_l": {"id": "chr-nav-top"}, "link_container": "div", "link_p": -1,
+                                                     "text_intelligent": True},
                        "neondragonfly.org": {"text_h": "p", "text_l": {"class": "entry-content"}, "right": 2,
                                              "title_h": "h1", "title_container": "main",
                                              "link_h": "a", "link_l": {"class": "nav-next"}, "link_container": "div"},
@@ -259,4 +292,73 @@ active_parser_dicts = {"ranobehub.org": {"left": 0, "right": 4,
                                                "link_h": "a", "link_l": {"rel": "next"}},
                        "fast.novelupdates.net": {"text_h": "p", "text_l": {"id": "chr-content"},
                                                 "title_h": "h3",
-                                                "link_h": "a", "link_l": {"id": "chr-nav-top"}, "link_container": "div", "link_p": -1}}
+                                                "link_h": "a", "link_l": {"id": "chr-nav-top"}, "link_container": "div", "link_p": -1},
+                       "ckandawrites.online": {"text_h": "p", "text_l": {"class": "entry-content"},
+                                               "title_h": "h1",
+                                               "link_h": "a", "link_l": {"rel": "next"}},
+                       "knoxt.space": {"text_h": "p", "text_l": {"class": "entry-content"},
+                                       "title_h": "h1",
+                                       "link_h": "a", "link_l": {'rel': 'next'}},
+                       "renovels.org": {"text_h": "p", "text_l": {"class": "content"},
+                                       "title_h": "h1",
+                                       "link_h": "button", "link_l": {"class": "items-center"}, "link_container": "div", "link_p": -1},
+                       "novelbin.com": {"text_h": "p", "text_l": {"id": "chr-content"},
+                                                     "title_h": "h4",
+                                                     "link_h": "a", "link_l": {"id": "chr-nav-top"}, "link_container": "div", "link_p": -1},
+                       "wuxia.click": {"text_h": "div", "text_l": {"id": "chapterText"}, "text_container": None,
+                                             "title_h": "title",
+                                             "link_h": "a", "link_l": {"rel": "noreferrer"}, "link_p": -1},
+                       "shanghaifantasy.com": {"text_h": "p", "text_l": {"class": "contenta"},
+                                                     "title_h": "title",
+                                                     "link_h": "a", "link_l": {"rel": "next"}},
+                       "novelbin.lanovels.net": {"text_h": "p", "text_l": {"id": "chr-content"},
+                                                 "title_h": "h4",
+                                                 "link_h": "a", "link_l": {"id": "chr-nav-top"}, "link_container": "div", "link_p": -1},
+                       "m.novel-cat.com": {"text_h": "p", "text_l": {"class": "chapterContent"},
+                                           "title_h": "h4",
+                                           "link_h": "div", "link_l": {"class": "next_btn"}, "link_container": "div", "link_p": -1},
+                       "www.goodnovel.com": {"text_h": "p", "text_l": {"class": "read-content"},
+                                             "title_h": "h1",
+                                             "link_h": "a", "link_l": {"class": "pagetion"}, "link_container": "div", "link_p": -1},
+                       "tapas.io": {"text_h": "p", "text_container": "article",
+                                    "title_h": "p", "title_l": {"class": "js-ep-title"},
+                                    "link_h": "a", "link_l": {"class": "toolbar-btn--center","data-direction": "next"}, "press_link": True, "link_sleep_and_reload": True},
+                       "silver-prince.com": {"text_h": "p", "text_container": "p", "text_l": {"class": "chapter"},
+                                    "title_h": "h1",
+                                    "link_h": "button", "link_container": "main", "link_p": 2, "link_pure_click": True},
+                       "www.novelhall.com": {"text_l": {"id": "htmlContent"}, "tags_used": ['br'],
+                                             "title_h": "h1",
+                                             "link_h": "a", "link_l": {"rel": "next"}},
+                       "ranobes.top": {"text_h": "p", "text_l": {"id": "arrticle"},
+                                       "title_h": "h1",
+                                       "link_h": "a", "link_l": {"id": "next"}},
+                       "www.fanmtl.com": {"text_l": {"class": "chapter-content"}, "tags_used": ["br"],
+                                       "title_h": "h2",
+                                       "link_h": "a", "link_l": {"class": "chnav next"}},
+                       "author.today": {"text_h": "p", "text_l": {"id": "text-container"},
+                                       "title_h": "h1",
+                                       "link_h": "a", "link_l": {"class": "next"}, "link_container": "li"},
+                       "wtr-lab.com": {"text_h": "p", "text_l": {"class": "chapter-body"},
+                                       "title_h": "h3",
+                                       "link_h": "a", "link_l": {"class": "chapter-navigator"}, "link_container": "div", "link_p": -1, "press_link": False},
+                       "sleepytranslations.com": {"text_h": "p", "text_l": {"class": "reading-content"},
+                                                  "title_h": "h1",
+                                                  "link_h": "a", "link_l": {"class": "nav-next"}, "link_container": "div"},
+                       "www.silknovel.com": {"text_h": "p", "text_container": "article", "right": 2,
+                                             "title_h": "h2",
+                                             "link_h": "a", "link_l": {"class": "justify-end"}},
+                       "loomywoods.com": {"text_h": "span", "text_l": {"class": "reading-content"},
+                                          "title_h": "h1",
+                                          "link_h": "a", "link_l": {"class": "next_page"}},
+                       "littlepinkstarfish.com": {"text_h": "p", "text_l": {"class": "entry-content"},
+                                          "title_h": "h2",
+                                          "link_h": "a", "link_l": {"rel": "next"}},
+                       "snowlyme.com": {"text_h": "p", "text_l": {"class": "entry-content"}, "right": 2,
+                                          "title_h": "h2",
+                                          "link_h": "a", "link_l": {"string": "Next"}},
+                       "bittercoffeetranslations.com": {"text_h": ["p", "figure"], "text_l": {"class": "entry-content"}, "text_intelligent": True, "text_lang": ["eng"],
+                                          "title_h": "h1",
+                                          "link_h": "a", "link_l": {"class": "nav-next"}, "link_container": "div"},
+                       "huitranslation.com": {"text_h": "p", "text_l": {"class": "reading-content"},
+                                          "title_h": "h1",
+                                          "link_h": "a", "link_l": {"class": "next_page"}}}

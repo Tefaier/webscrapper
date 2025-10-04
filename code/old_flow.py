@@ -1,47 +1,36 @@
-import base64
-import io
-from enum import Enum
-
-from bs4 import BeautifulSoup
-from bs4.element import NavigableString, PageElement, Tag
-from Chrome import uc, get_driver
-from Settings import SCROLL_PAUSE_TIME, MAX_SCROLL_ATTEMPTS, text_delimeter, MAX_OPEN_ATTEMPTS, output_file, \
+from bs4.element import NavigableString
+from chrome import uc, get_driver
+from settings import text_delimeter, MAX_OPEN_ATTEMPTS, output_file, \
     compare_start_ignore, accepted_length_diff, output_file_type, output_file_directory, \
     text_preview_symbols_number, parser_dict_default as PaDD, process_dict_default as PrDD, \
     sleeping_time, stylise_text, tesseract_path, link_info_part, jum_list, max_page_load_time, page_load_check_intervals, \
     wait_before_reading as waiting_time, MAX_WAIT_FOR_BUTTON_CLICK_CHANGE as max_click_wait
-from Custom_exceptions import *
+from objects.types.custom_exceptions import *
 import requests
 import time
-from io import TextIOWrapper
-import cssutils
-from io import BytesIO
-import re
-import sys
-from PIL import Image
-import pytesseract
-from Text_functions import string_with_meaning, convert_utf8_symbols, ask_for_authentification, dict_to_text, \
-    string_with_style
-from Binary_converter import convert_binary
-from Web_functions import *
-import validators
 
-from docx import Document
-from docx.shared import Cm
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+import sys
+import pytesseract
+from utils.text_functions import string_with_meaning, convert_utf8_symbols, ask_for_authorization, \
+    string_with_style
+from utils.web_functions import *
+import validators
+import cv2
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebElement
-from selenium.webdriver import ActionChains
+
+from objects.types.field_types import FieldTypes
+from objects.output_writers import OutputWriter, WriterFactory
+from objects.web_handlers.scroll_strategy import ScrollStrategy, NoScroll, BottomScroll
+from objects.web_handlers.block_screen_handler import BlockScreenHandler, NoHandling
 
 
-class FieldTypes(Enum):
-    Text = 1
-    Image = 2
+# Output writers are imported from output_writers module
 
 
 class File():
-    file_wrapper: object
+    file_wrapper: OutputWriter
     file_destination: str
     file_name: str
     file_type: str
@@ -53,47 +42,22 @@ class File():
         self.file_destination = path
         self.file_name = name
         self.file_type = type
-        self.file_wrapper = self.create_instance()
-
-    def create_instance(self):
-        if self.file_type == "txt":
-            return open(self.create_full_path(), 'w', encoding='utf-8')
-        elif self.file_type == "html":
-            file = open(self.create_full_path(), 'w', encoding='utf-8')
-            file.write("<html>\n<head></head>\n<body>\n")
-            return file
-        elif self.file_type == "docx":
-            return Document()
+        self.file_wrapper = WriterFactory.create(self.create_full_path(), self.file_type)
 
     def write_text(self, string: str):
-        if self.file_type == "docx":
-            self.file_wrapper.add_paragraph(string)
-        elif self.file_type == "txt":
-            self.file_wrapper.write(string + "\n")
-        elif self.file_type == "html":
-            self.file_wrapper.write("<p>" + string + "</p>" + "\n")
+        self.file_wrapper.write_text(string)
 
     def write_image(self, data):
-        if self.file_type == "docx":
-            try:
-                new_file = BytesIO()
-                Image.open(BytesIO(convert_binary(data, "PIL"))).convert('RGB').save(new_file, format="png")
-
-                p = self.file_wrapper.add_paragraph()
-                p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-                r = p.add_run()
-                r.add_picture(new_file)  # , width=Cm(image_width))
-            except:
-                return
+        self.file_wrapper.write_image(data)
 
     def close(self):
-        if self.file_type == "docx":
-            self.file_wrapper.save(self.create_full_path())
-        elif self.file_type == "txt":
-            self.file_wrapper.close()
-        elif self.file_type == "html":
-            self.file_wrapper.write("</body>")
-            self.file_wrapper.close()
+        self.file_wrapper.close()
+
+
+# Scroll strategies are imported from scrolling module
+
+
+# BlockScreenHandler is imported from block_screen module
 
 
 class Process:
@@ -118,6 +82,9 @@ class Process:
     block_button_type: str
     block_button_limit: dict
 
+    scroll_strategy: ScrollStrategy
+    block_handler: BlockScreenHandler
+
     def __init__(self, input: dict):
         self.input_dict = input
         self.open_attempts = 0
@@ -136,6 +103,9 @@ class Process:
         self.block_input_content = input.get("input_content", PrDD.get("input_content"));
         self.block_button_type = input.get("button_type", PrDD.get("button_type"));
         self.block_button_limit = input.get("button_limit", PrDD.get("button_limit"));
+
+        self.scroll_strategy = BottomScroll() if self.scroll_used else NoScroll()
+        self.block_handler = NoHandling()
 
         self.initialise()
 
@@ -178,16 +148,9 @@ class Process:
         return self.soup
 
     def execute_scrolling(self):
-        attempts = 0
-        last_height = self.driver.execute_script("return document.body.scrollHeight")
-        while True:
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(SCROLL_PAUSE_TIME)
-            new_height = self.driver.execute_script("return document.body.scrollHeight")
-            attempts += 1
-            if new_height == last_height or attempts > MAX_SCROLL_ATTEMPTS:
-                break
-            last_height = new_height
+        if self.driver is None:
+            return
+        self.scroll_strategy.scroll(self.driver)
 
     def empty_cash(self):
         if self.driver != None:
@@ -201,19 +164,16 @@ class Process:
             self.driver.quit()
 
     def block_screen_talk(self):
-        if self.block_input_type != None:
-            input_field = self.driver.find_element(By.CSS_SELECTOR,
-                                                   f"{self.block_input_type}[{dict_to_text(self.block_input_limit, '=', ', ')}]")
-            if input_field != None:
-                input_field.send_keys(self.block_input_content)
-            else:
-                raise TargetNotFoundException("Failed to find input field")
-        button_field = self.driver.find_element(By.CSS_SELECTOR,
-                                                f"{self.block_button_type}[{dict_to_text(self.block_button_limit, '=', ', ')}]")
-        if button_field != None:
-            button_field.click()
-        else:
-            raise TargetNotFoundException("Failed to find button field")
+        if not self.chrome_used:
+            return
+        self.block_handler.talk(
+            self.driver,
+            self.block_input_type,
+            self.block_input_limit,
+            self.block_input_content,
+            self.block_button_type,
+            self.block_button_limit
+        )
 
     def refresh(self, url: str):
         if self.block_screen and self.chrome_used:
@@ -237,7 +197,7 @@ class Process:
             self.open_attempts = current_attempts_num
             return self.soup
         '''
-        if url.split('/')[2] == "tl.rulate.ru":
+        if url.split('/') [2] == "tl.rulate.ru":
             if self.chrome_used:
                 submit = self.driver.find_element(By.NAME, "ok")
                 submit.click()
@@ -256,7 +216,6 @@ class Process:
         elif type(string) == list:
             for part in string:
                 self.write_text(part)
-            # self.write_file.write_text(convert_utf8_symbols('\n'.join(string)) + '\n')
         elif type(string) == NavigableString:
             self.write_text(str(string.string))
 
@@ -370,7 +329,7 @@ class Parser:
         self.put_intelligent = input.get("put_intelligent", PaDD.get("put_intelligent"))
 
         self.text_reader = None
-        pytesseract.pytesseract.tesseract_cmd = tesseract_path
+        pytesseract.tesseract_cmd = tesseract_path
 
     def set_reader(self):
         if self.text_intelligent and self.text_expected_languages is not None:
@@ -418,7 +377,7 @@ class Parser:
             try:
                 try:
                     self.retrieve_content()
-                    if self.check_pass() or ask_for_authentification("Content error, text: " +
+                    if self.check_pass() or ask_for_authorization("Content error, text: " +
                                                                      "\n".join(self.convert_to_strings(self.text))[
                                                                      :(text_preview_symbols_number
                                                                      if len("".join(self.convert_to_strings(
@@ -469,16 +428,9 @@ class Parser:
             if isinstance(textUnit, Tag):
                 ordered_content.append([textUnit.sourceline, textUnit.sourcepos, FieldTypes.Text, textUnit.text])
             elif isinstance(textUnit, str):
-                located = False
-                for index in range(len(ordered_content), -1, -1):
-                    if ordered_content[index][2] == FieldTypes.Text:
-                        ordered_content[index][3] += "\n" + textUnit
-                        located = True
-                        break
-                if not located:
-                    maximumLine = max(ordered_content, lambda x: x[0]) if len(ordered_content) > 0 else 10000000000
-                    maximumPos = max(ordered_content, lambda x: x[1]) if len(ordered_content) > 0 else 10000000000
-                    ordered_content.append([maximumLine + 1, maximumPos + 1, FieldTypes.Text, textUnit])
+                maximumLine = (max([x[0] for x in ordered_content])) if (len(ordered_content) > 0) else 0
+                maximumPos = (max([x[1] for x in ordered_content])) if (len(ordered_content) > 0) else 0
+                ordered_content.append([maximumLine + 1, maximumPos + 1, FieldTypes.Text, textUnit])
 
         for imageUnit in self.images:
             if isinstance(imageUnit, Tag):
@@ -763,10 +715,16 @@ class Parser:
 
         # image_data = base64.b64decode(obj.screenshot_as_base64)
         image_data = self.get_screen_of_element(obj, 5, 5)
-
-        result = pytesseract.image_to_string(Image.open(BytesIO(image_data)), lang=self.text_expected_languages)
+        img = cv2.imdecode(np.asarray(bytearray(image_data), dtype=np.uint8), cv2.IMREAD_COLOR)
+        # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # contrasted = cv2.threshold(gray,200,255,cv2.THRESH_BINARY)[1]
+        # Image.fromarray(contrasted).show()
+        result = pytesseract.image_to_string(img, lang=self.text_expected_languages)
         # result = self.text_reader.readtext(image_data, paragraph = True, detail = 0, mag_ratio = 2, blocklist = [';', ':', '|'], low_text = 0.25)
-        return re.sub(r"\n+", " ", result).replace('|', 'I')
+        result = re.sub(r"(\W)(\wm )", r"\1I'm ", result)
+        result = re.sub(r"\n+", "\n", result)
+        result = result.replace('|', 'I')
+        return result
 
     def get_screen_of_element(self, element: WebElement, offset_x: int, offset_y: int):
         normalise = lambda val, hor, limits: min(max(val, limits[0][0] if hor else limits[0][1]),
@@ -797,7 +755,7 @@ class Parser:
 
     def jummed_text(self, element: Tag):
         return (element.has_attr("class") and any(jum_class in element["class"] for jum_class in jum_list)) or any(
-            (type(elem) == Tag and self.jummed_text(elem)) for elem in element.contents)
+            (type(elem) == Tag and self.jummed_text(elem)) for elem in element.contents) or (element.find('img') is not None) # or (element.has_attr("style"))
 
     def unwrap_xpath(self, xpath):
         parts = xpath.split('/')

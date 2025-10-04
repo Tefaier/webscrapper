@@ -5,7 +5,11 @@ import unicodedata
 encountered_strings = []
 
 def string_with_style(text: str):
-    text = re.sub(r'\A\s*', "", text)
+    # removes following white spaces
+    text = re.sub(r'^\s*', "", text)
+    # removes ending white spaces
+    text = re.sub(r'\s*$', "", text)
+    # removes multiple spacing between spacial characters and any following text/letters
     text = re.sub(r'(?<=[.,?!])(?=[\w])', r' ', text)
     return text
 
@@ -17,9 +21,9 @@ def convert_utf8_symbols(text: str):
     return unicodedata.normalize("NFKC", html.unescape(text))
 
 
-def ask_for_authentification(text: str):
+def ask_for_authorization(text: str):
     if encountered_strings.count(text) == 0:
-        encountered_strings.append(text)
+        # encountered_strings.append(text)
         print(text)
         print("If you want to continue write YES or something else if not")
         command = input()
@@ -34,3 +38,9 @@ def dict_to_text(dictionary: dict, key_value_sep: str, keys_sep: str):
             answer += keys_sep
         answer += f"{key}{key_value_sep}'{value}'"
     return answer
+
+def fix_bad_detections(input: str) -> str:
+    result = re.sub(r"(\W)(\wm )", r"\1I'm ", input)
+    result = re.sub(r"\n+", "\n", result)
+    result = result.replace('|', 'I')
+    return result
