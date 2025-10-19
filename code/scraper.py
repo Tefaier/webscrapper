@@ -1,7 +1,7 @@
 from old_flow import Process, Parser
 from settings import active_parser_dicts, active_process_dicts
 
-StartingURL = "https://ranobelib.me/ru/26843--i-am-the-god-of-games/read/v1/c150"
+StartingURL = "https://gravitytales.com/story/i-bring-the-game-into-reality/chapter-1-11/"
 def write_log(part: int, paragraphs_clear: int, paragraphs_cleaned: int):
     print(f"Part {part} is done! {paragraphs_clear} were detected and {paragraphs_cleaned} were left")
 

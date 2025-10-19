@@ -19,7 +19,7 @@ tesseract_path = "C:/Program Files/Tesseract-OCR/tesseract.exe"  # path to tesse
 max_page_load_time = 1  # how much to wait for the page to load its chapter holder, works only with chrome
 page_load_check_intervals = 1  # intervals between checking if the page was loaded
 sleeping_time = 1  # forced sleep time before reading page in case sleep is True in process settings
-wait_before_reading = 4 # 2  # can be used with chrome to parse text only after some time page being opened
+wait_before_reading = 1 # 2  # can be used with chrome to parse text only after some time page being opened
 SCROLL_PAUSE_TIME = 2 # 0.5  # pause time for scrolling page in case scroll is True in process settings
 MAX_SCROLL_ATTEMPTS = 20  # max page scroll attempts in case scroll is True in process settings
 text_delimeter = "###"  # used if tags_used is not None in parser settings
@@ -62,7 +62,7 @@ active_process_dicts = {"ranobehub.org": {"chrome": False},
                         "www.mtlnovel.com": {"chrome": True, "clearing": True, "sleep": True},
                         "www.mtlnovels.com": {}, # {"chrome": True, "clearing": True, "chrome_undetected": True},
                         "18.foxaholic.com": {"chrome": True},
-                        "www.foxaholic.com": {"chrome": True},
+                        "www.foxaholic.com": {"chrome": True, "wait": True,},
                         "rainbow-reads.com": {"chrome": False},
                         "danmeiextra.home.blog": {"chrome": False},
                         "younettranslate.com": {"chrome": False},
@@ -116,7 +116,10 @@ active_process_dicts = {"ranobehub.org": {"chrome": False},
                         "littlepinkstarfish.com": {},
                         "snowlyme.com": {"chrome": True},
                         "bittercoffeetranslations.com": {"chrome": True, "wait": True},
-                        "huitranslation.com": {}}
+                        "huitranslation.com": {},
+                        "ididmybesttranslations.wordpress.com": {},
+                        "kktranslates.home.blog": {"chrome": True, "wait": True},
+                        "gravitytales.com": {}}
 
 parser_dict_default = {"left": 0,  # number of text paragraphs to exclude at the beginning of each chapter
                        "right": 0,  # number of text paragraphs to exclude at the end of each chapter
@@ -188,7 +191,7 @@ active_parser_dicts = {"ranobehub.org": {"left": 0, "right": 4,
                                             "title_h": "title", "title_l": None,
                                             "link_h": "a", "link_l": {"class": "next_page"}},
                        "www.foxaholic.com": {"left": 0, "right": 0,
-                                             "text_h": "p", "text_l": {"class": "text-left"},
+                                             "text_h": "p", "text_l": {"class": "entry-content"},
                                              "title_h": "title", "title_l": None,
                                              "link_h": "a", "link_l": {"class": "next_page"}},
                        "rainbow-reads.com": {"left": 0, "right": 1,
@@ -361,4 +364,14 @@ active_parser_dicts = {"ranobehub.org": {"left": 0, "right": 4,
                                           "link_h": "a", "link_l": {"class": "nav-next"}, "link_container": "div"},
                        "huitranslation.com": {"text_h": "p", "text_l": {"class": "reading-content"},
                                           "title_h": "h1",
-                                          "link_h": "a", "link_l": {"class": "next_page"}}}
+                                          "link_h": "a", "link_l": {"class": "next_page"}},
+                       "ididmybesttranslations.wordpress.com": {"text_h": "p", "text_l": {"class": "entry-content"},
+                                          "title_h": "header", "title_l": {"class": "entry-header"},
+                                          "link_h": "a", "link_l": {'text': 'Next Chapter'}},
+                       "kktranslates.home.blog": {"text_h": "p", "text_l": {"class": "entry-content"},
+                                          "title_h": "h2",
+                                          "link_h": "a", "link_container": "p", "link_l": {'class': 'has-text-align-center'}, "link_p": -1},
+                       "gravitytales.com": {"text_h": "p", "text_l": {"id": "chapter-content"}, "text_container": "section",
+                                          "title_h": "h1",
+                                          "link_h": "a", "link_container": "div", "link_l": {'class': 'chapter__actions-right'}, "link_p": -1}}
+

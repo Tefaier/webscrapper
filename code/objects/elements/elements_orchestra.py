@@ -9,7 +9,7 @@ import validators
 
 from objects.elements.elements_collector import ElementsCollector
 from objects.elements.elements_orderer import ElementsOrderer
-from objects.output_writers import OutputWriter
+from objects.file_handlers.output_writers import OutputWriter
 from objects.types.custom_exceptions import TargetNotFoundException
 from objects.types.field_types import FieldTypes
 from settings import link_info_part

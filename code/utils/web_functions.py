@@ -41,8 +41,8 @@ def unwrap_xpath(driver: WebDriver, xpath):
             driver.execute_script("arguments[0].open = true;", obj)
 
 def fill_standard_chrome_options(options: Union[Options, ChromeOptions], chrome_dir, chrome_profile):
-    # options.page_load_strategy = 'eager'
-    # options.add_argument("--headless=new")
+    options.page_load_strategy = 'eager'
+    options.add_argument("--headless=new")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--no-default-browser-check")
     options.add_argument("--no-first-run")

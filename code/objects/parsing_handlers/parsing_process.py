@@ -1,0 +1,110 @@
+from __future__ import annotations
+
+from typing import Dict, Any
+
+from bs4 import BeautifulSoup
+
+from objects.parsing_handlers.content_parser import ContentParser
+from objects.types.custom_exceptions import TargetNotFoundException
+from objects.web_handlers.link_handler import LinkHandler
+
+
+class ParsingProcess:
+    """
+    Coordinates content parsing and navigation across multiple iterations.
+
+    Constructor expects ready-to-use ContentParser and LinkHandler instances.
+    - ContentParser is responsible for opening the current URL and writing parsed output via its ElementsOrchestra.
+    - LinkHandler is responsible for locating and following the next link based on the parsed DOM.
+
+    The process ensures the underlying OutputWriter is closed on completion or on any error, and returns
+    a structured result with progress and error information (if any).
+    """
+
+    def __init__(self, parser: ContentParser, link_handler: LinkHandler) -> None:
+        self.parser = parser
+        self.link_handler = link_handler
+
+    def parse_iterations(self, start_url: str, iterations: int) -> Dict[str, Any]:
+        """
+        Parse content starting from start_url for a given number of iterations.
+
+        Returns a dictionary with fields:
+            - success: bool
+            - processed: int (number of successfully processed iterations)
+            - start_url: str
+            - last_url: str (the last URL that was processed or resolved)
+            - finished_early: bool (optional, set if next link was not found before completing iterations)
+            - error_type: str (optional)
+            - error_message: str (optional)
+        """
+        current_url: str = start_url
+        processed: int = 0
+        result: Dict[str, Any] = {
+            "success": False,
+            "processed": 0,
+            "start_url": start_url,
+            "last_url": start_url,
+        }
+        try:
+            # Iterate requested number of times
+            for _ in range(max(0, iterations)):
+
+                # Parse current URL and write content
+                self.parser.parse_content(current_url)
+
+                # Build soup for link detection after content is parsed
+                soup: BeautifulSoup
+                if self.parser._using_chrome():
+                    soup = self.parser._current_dom()
+                else:
+                    soup = self.parser._get_soup(current_url)
+
+                # Try to follow the next link; if missing, we finish early successfully
+                try:
+                    self._sync_driver()
+                    next_url = self.link_handler.navigate(current_url, soup)
+                except TargetNotFoundException:
+                    processed += 1
+                    result.update({
+                        "success": True,
+                        "processed": processed,
+                        "last_url": current_url,
+                        "finished_early": True,
+                    })
+                    return result
+
+                # Step completed
+                processed += 1
+                current_url = next_url or current_url
+
+            # All iterations completed
+            result.update({
+                "success": True,
+                "processed": processed,
+                "last_url": current_url,
+            })
+            return result
+        except Exception as e:
+            result.update({
+                "success": False,
+                "processed": processed,
+                "last_url": current_url,
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+            })
+            return result
+        finally:
+            # Ensure the output is closed
+            try:
+                self.parser.orchestra.output.close()
+            except Exception:
+                pass
+
+    def _sync_driver(self):
+        try:
+            if getattr(self.parser, "driver", None) is not None:
+                self.link_handler.set_driver(self.parser.driver)
+        except Exception:
+            # Non-fatal if LinkHandler does not expose set_driver
+            pass

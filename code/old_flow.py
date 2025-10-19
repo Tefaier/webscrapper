@@ -21,7 +21,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebElement
 
 from objects.types.field_types import FieldTypes
-from objects.output_writers import OutputWriter, WriterFactory
+from objects.file_handlers.output_writers import OutputWriter, WriterFactory
 from objects.web_handlers.scroll_strategy import ScrollStrategy, NoScroll, BottomScroll
 from objects.web_handlers.block_screen_handler import BlockScreenHandler, NoHandling
 
