@@ -5,10 +5,11 @@ from concurrent.futures import wait
 
 from trio import sleep_until
 
-from objects import Process
+from old_flow import Process
 from bs4 import BeautifulSoup
 import urllib.request
 import cv2
+
 
 def download_image_urllib(url, filename):
     print(f"Image started loading: {filename}")
@@ -17,6 +18,7 @@ def download_image_urllib(url, filename):
         print(f"Image successfully downloaded: {filename}")
     except Exception as e:
         print(f"Error downloading image: {e}")
+
 
 pool = ThreadPoolExecutor(max_workers=100)
 
@@ -52,10 +54,4 @@ for chapter in range(71, 78):
             os.remove(create_path(chapter, i))
 
     process.press_element(soup.find("a", {}))
-    start_url = process.driver.current_url
-
-
-
-
-
-
+    start_url = process._driver_handler_name.current_url

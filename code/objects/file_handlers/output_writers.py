@@ -8,6 +8,7 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from PIL import Image
 
 from objects.types.field_types import FieldTypes
+from settings.file_handlers_defaults import IMAGE_WIDTH_CM
 from utils.binary_converter import convert_binary
 from objects.types.custom_exceptions import UnsupportedArgumentsException
 
@@ -51,8 +52,7 @@ class HtmlWriter(OutputWriter):
         self._file.write("<p>" + string + "</p>\n")
 
     def write_image(self, data) -> None:
-        # Could inline base64 images if needed; not implemented for now
-        return
+        self._file.write(f'<img src="data:image/png;base64,{convert_binary(data, "string")}>')
 
     def close(self) -> None:
         self._file.write("</body>")
@@ -60,9 +60,10 @@ class HtmlWriter(OutputWriter):
 
 
 class DocxWriter(OutputWriter):
-    def __init__(self, full_path: str):
+    def __init__(self, full_path: str, image_width: float = IMAGE_WIDTH_CM):
         self._full_path = full_path
         self._doc = Document()
+        self.image_width = image_width
 
     def write_text(self, string: str) -> None:
         self._doc.add_paragraph(string)
@@ -75,7 +76,7 @@ class DocxWriter(OutputWriter):
             p = self._doc.add_paragraph()
             p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             r = p.add_run()
-            r.add_picture(new_file)
+            r.add_picture(new_file, width=self.image_width)
         except Exception:
             return
 

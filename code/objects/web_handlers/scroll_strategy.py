@@ -6,7 +6,8 @@ from abc import ABC
 from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.webdriver import WebDriver
 
-from .web_handler import WebHandler
+from objects.web_handlers.web_handler import WebHandler
+from settings.web_handlers_defaults import *
 
 
 class ScrollStrategy(WebHandler, ABC):
@@ -19,7 +20,7 @@ class NoScroll(ScrollStrategy):
 
 
 class BottomScroll(ScrollStrategy):
-    def __init__(self, scroll_pause_time: int, scroll_max_attempts: int):
+    def __init__(self, scroll_pause_time: int = SCROLL_PAUSE_TIME, scroll_max_attempts: int = SCROLL_MAX_ATTEMPTS):
         self.scroll_pause_time = scroll_pause_time
         self.scroll_max_attempts = scroll_max_attempts
 

@@ -1,5 +1,7 @@
 import re
 import html
+
+import Levenshtein
 import unicodedata
 
 encountered_strings = []
@@ -13,7 +15,7 @@ def string_with_style(text: str):
     text = re.sub(r'(?<=[.,?!])(?=[\w])', r' ', text)
     return text
 
-def string_with_meaning(text: str):
+def string_with_meaning(text: str) -> bool:
     return re.search("[^\W_]", text) != None
 
 
@@ -44,3 +46,8 @@ def fix_bad_detections(input: str) -> str:
     result = re.sub(r"\n+", "\n", result)
     result = result.replace('|', 'I')
     return result
+
+def check_is_same(str1: str, str2: str, side_tolerance: int) -> bool:
+    if len(str1) < side_tolerance * 3 or len(str2) < side_tolerance * 3:
+        return False
+    return str2.find(str1[side_tolerance:-side_tolerance]) != -1 and str1.find(str2[side_tolerance:-side_tolerance]) != -1

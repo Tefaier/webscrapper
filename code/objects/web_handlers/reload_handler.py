@@ -6,14 +6,11 @@ from typing import Optional, TYPE_CHECKING, Callable
 from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.webdriver import WebDriver
 
+from objects.file_handlers.log_writer import LogWriter
 from objects.types.custom_exceptions import TargetNotFoundException, MaxOpeningTimeExceededException
 from objects.web_handlers.driver_handler import DriverHandler
-from settings import (
-    MAX_OPEN_ATTEMPTS as DEFAULT_MAX_OPEN_ATTEMPTS,
-    max_page_load_time as DEFAULT_MAX_PAGE_LOAD_TIME,
-    page_load_check_intervals as DEFAULT_PAGE_LOAD_CHECK_INTERVAL,
-    wait_before_reading as DEFAULT_WAIT_BEFORE_READING,
-)
+from settings.web_handlers_defaults import *
+
 
 if TYPE_CHECKING:
     # Only for type hints to avoid circular imports at runtime
@@ -35,19 +32,21 @@ class ReloadHandler:
 
     def __init__(
         self,
-        driver_creator: DriverHandler = None,
-        wait_before_open: bool = False,
-        sleep_before_open_seconds: float = 0.0,
-        wait_before_process: bool = True,
-        sleep_before_process_seconds: float = DEFAULT_WAIT_BEFORE_READING or 0.0,
-        max_attempts: int = DEFAULT_MAX_OPEN_ATTEMPTS,
-        max_page_load_wait_seconds: float = DEFAULT_MAX_PAGE_LOAD_TIME,
-        page_load_check_interval_seconds: float = DEFAULT_PAGE_LOAD_CHECK_INTERVAL,
+        log_writer: LogWriter,
+        driver_handler: DriverHandler = None,
+        sleep_before_open: bool = SLEEP_BEFORE_OPEN,
+        sleep_before_open_seconds: float = SLEEP_BEFORE_OPEN_SECONDS,
+        sleep_before_process: bool = SLEEP_BEFORE_PROCESS,
+        sleep_before_process_seconds: float = SLEEP_BEFORE_PROCESS_SECONDS,
+        max_attempts: int = MAX_ATTEMPTS,
+        max_page_load_wait_seconds: float = MAX_PAGE_LOAD_WAIT_SECONDS,
+        page_load_check_interval_seconds: float = PAGE_LOAD_CHECK_INTERVAL_SECONDS,
     ) -> None:
-        self.driver_creator = driver_creator
-        self.wait_before_open = wait_before_open
+        self.logger = log_writer.get_logger(type(self).__name__)
+        self.driver_handler = driver_handler
+        self.sleep_before_open = sleep_before_open
         self.sleep_before_open_seconds = sleep_before_open_seconds
-        self.wait_before_process = wait_before_process
+        self.wait_before_process = sleep_before_process
         self.sleep_before_process_seconds = sleep_before_process_seconds
         self.max_attempts = max_attempts
         self.max_page_load_wait_seconds = max_page_load_wait_seconds
@@ -59,21 +58,29 @@ class ReloadHandler:
     def run(self, parser: ContentParser):
         """Attempt to open and process a page with reload/wait logic. Raises MaxOpeningTimeExceededException if failed all attempts"""
         attempts = 0
-        if self.wait_before_open and self.sleep_before_open_seconds and self.sleep_before_open_seconds > 0:
+        if self.sleep_before_open and self.sleep_before_open_seconds > 0.0:
             time.sleep(self.sleep_before_open_seconds)
 
         while attempts <= self.max_attempts:
             attempts += 1
+            self.logger.info(f"Attempt {attempts}")
             if self._attempt_once(parser):
                 return
-            if parser._using_chrome() and (self.max_page_load_wait_seconds or 0) > 0:
+            if self.driver_handler and self.max_page_load_wait_seconds > 0.0:
                 deadline = time.time() + float(self.max_page_load_wait_seconds)
                 while time.time() < deadline:
                     time.sleep(self.page_load_check_interval_seconds)
-                    if self._attempt_once(parser):
+                    try:
+                        if self.driver_handler:
+                            soup = parser.get_soup(parser.current_url)
+                            parser.handle_block_and_scroll(soup)
+                        parser.write_content()
                         return
+                    except TargetNotFoundException:
+                        pass
             self._perform_refresh(parser, attempts)
 
+        self.logger.warning(f"Number of attempts exceeded limit, failed")
         raise MaxOpeningTimeExceededException("Seemed to fail overcoming defence")
 
     # ------------------------
@@ -81,28 +88,30 @@ class ReloadHandler:
     # ------------------------
     def _attempt_once(self, parser: ContentParser) -> bool:
         """Single attempt to open/process the page. Returns whether operation succeeded"""
-        if parser._using_chrome():
-            soup = parser._get_soup(parser.current_url)
-            parser._handle_block_and_scroll(soup)
+        if self.driver_handler:
+            soup = parser.get_soup(parser.current_url)
+            parser.handle_block_and_scroll(soup)
             self._maybe_wait_before_process()
 
         try:
-            parser._write_content()
+            parser.write_content()
             return True
-        except TargetNotFoundException:
+        except TargetNotFoundException as e:
+            self.logger.warning("Writing content failed", exc_info=e)
             return False
 
     def _maybe_wait_before_process(self) -> None:
-        if self.wait_before_process and self.sleep_before_process_seconds and self.sleep_before_process_seconds > 0:
+        if self.wait_before_process and self.sleep_before_process_seconds > 0:
             time.sleep(self.sleep_before_process_seconds)
 
     def _perform_refresh(self, parser: ContentParser, attempt: int):
-        if not parser._using_chrome():
+        if self.driver_handler is None:
             return
         if attempt < self.max_attempts:
-            parser.driver.delete_all_cookies()
-            parser.driver.refresh()
+            self.logger.debug("Deleting cookies and refresh")
+            self.driver_handler.get_driver().delete_all_cookies()
+            self.driver_handler.get_driver().refresh()
         else:
-            url = parser.driver.current_url
-            parser.set_driver(self.driver_creator.create_driver())
-            parser.driver.get(url)
+            self.logger.debug("Creating new session")
+            url = self.driver_handler.get_driver().current_url
+            self.driver_handler.recreate_driver().get(url)

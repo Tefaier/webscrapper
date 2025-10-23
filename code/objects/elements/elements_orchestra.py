@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Tuple
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup, PageElement
@@ -9,10 +10,11 @@ import validators
 
 from objects.elements.elements_collector import ElementsCollector
 from objects.elements.elements_orderer import ElementsOrderer
+from objects.file_handlers.log_writer import LogWriter
 from objects.file_handlers.output_writers import OutputWriter
 from objects.types.custom_exceptions import TargetNotFoundException
 from objects.types.field_types import FieldTypes
-from settings import link_info_part
+from settings.elements_defaults import LINK_INFO_PART
 
 
 class ElementsOrchestra:
@@ -28,12 +30,14 @@ class ElementsOrchestra:
 
     def __init__(
         self,
+        log_writer: LogWriter,
         collectors: List[ElementsCollector],
         orderer: ElementsOrderer,
         output: OutputWriter,
         min_expected: int = 1,
         min_expected_text: int = 1,
     ) -> None:
+        self.logger = log_writer.get_logger(type(self).__name__)
         self.collectors = collectors
         self.orderer = orderer
         self.output = output
@@ -49,14 +53,14 @@ class ElementsOrchestra:
 
         # Validation
         if len(ordered) < self.min_expected:
-            raise TargetNotFoundException(
-                f"Not enough elements collected. Expected at least {self.min_expected}, got {len(ordered)}"
-            )
+            message = f"Not enough elements collected. Expected at least {self.min_expected}, got {len(ordered)}"
+            self.logger.error(message)
+            raise TargetNotFoundException(message)
         char_count = sum([len(part[1].text) for part in ordered if part[0] == FieldTypes.Text])
         if char_count < self.min_expected_text:
-            raise TargetNotFoundException(
-                f"Not enough chars collected. Expected at least {self.min_expected_text}, got {char_count}"
-            )
+            message = f"Not enough chars collected. Expected at least {self.min_expected_text}, got {char_count}"
+            self.logger.error(message)
+            raise TargetNotFoundException(message)
 
         for element in ordered:
             self._make_output(url, element)
@@ -67,16 +71,19 @@ class ElementsOrchestra:
             self.output.write_text(element.text)
         elif element_type == FieldTypes.Image and isinstance(element, Tag):
             try:
-                for param in link_info_part:
+                for param in LINK_INFO_PART:
                     info = element.get(param)
                     if info is None:
                         continue
                     if validators.url(info):
+                        self.logger.debug(f"Started getting image with url: {info}")
                         self.output.write_image(requests.get(info).content)
                         return
-                    info = "/".join(url.split('/')[:3]) + info
+                    info = urljoin(url, info)
                     if validators.url(info):
+                        self.logger.debug(f"Started getting image with url: {info}")
                         self.output.write_image(requests.get(info).content)
                         return
+                self.logger.warning(f"Failed to get information about image url: {element.__repr__()}")
             except Exception as e:
-                print(f"Encountered error in getting image: {e}")
+                self.logger.warning("Encountered error in getting image", exc_info=e)

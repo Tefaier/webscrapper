@@ -10,16 +10,12 @@ from selenium.webdriver.chrome.webdriver import WebDriver
 
 from objects.elements.elements_collector import ElementsCollector
 from objects.elements.elements_orchestra import ElementsOrchestra
+from objects.file_handlers.log_writer import LogWriter
 from objects.types.custom_exceptions import TargetNotFoundException
 from objects.web_handlers.block_screen_handler import BlockScreenHandler, NoHandling
+from objects.web_handlers.driver_handler import DriverHandler
 from objects.web_handlers.scroll_strategy import ScrollStrategy, NoScroll
 from objects.web_handlers.reload_handler import ReloadHandler
-from settings import (
-    MAX_OPEN_ATTEMPTS,
-    max_page_load_time,
-    page_load_check_intervals,
-    wait_before_reading as waiting_time,
-)
 
 
 class ContentParser:
@@ -38,51 +34,41 @@ class ContentParser:
 
     def __init__(
         self,
+        log_writer: LogWriter,
         orchestra: ElementsOrchestra,
-        next_link_collector: ElementsCollector,
-        driver=None,
-        scroll_strategy: Optional[ScrollStrategy] = None,
-        block_handler: Optional[BlockScreenHandler] = None,
-        reload_handler: Optional[ReloadHandler] = None,
+        scroll_strategy: ScrollStrategy,
+        block_handler: BlockScreenHandler,
+        reload_handler: ReloadHandler,
+        driver_handler: DriverHandler = None,
     ) -> None:
+        self.logger = log_writer.get_logger(type(self).__name__)
         self.orchestra = orchestra
-        self.next_link_collector = next_link_collector
-        self.driver: WebDriver = driver
-        self.scroll_strategy: ScrollStrategy = scroll_strategy or NoScroll()
-        self.block_handler: BlockScreenHandler = block_handler or NoHandling()
+        self.scroll_strategy: ScrollStrategy = scroll_strategy
+        self.block_handler: BlockScreenHandler = block_handler
+        self.reload_handler: ReloadHandler = reload_handler
+        self.driver_handler = driver_handler
         self.current_url: Optional[str] = None
-        self.reload_handler: ReloadHandler = reload_handler or ReloadHandler(
-            wait_before_open=False,
-            sleep_before_open_seconds=0.0,
-            wait_before_process=True,
-            sleep_before_process_seconds=waiting_time or 0.0,
-            max_attempts=MAX_OPEN_ATTEMPTS,
-            max_page_load_wait_seconds=max_page_load_time,
-            page_load_check_interval_seconds=page_load_check_intervals,
-        )
 
     # ------------------------
     # Public API
     # ------------------------
     def parse_content(self, url: str):
+        self.logger.info(f"Processing url: {url}")
         self.current_url = url
         self.reload_handler.run(self)
-
-    def set_driver(self, driver: WebDriver):
-        self.driver = driver
 
     # ------------------------
     # Internal helpers
     # ------------------------
-    def _write_content(self):
-        self.orchestra.run(self.current_url, self._get_soup(self.current_url))
+    def write_content(self):
+        self.orchestra.run(self.current_url, self.get_soup(self.current_url))
 
     def _using_chrome(self) -> bool:
-        return self.driver is not None
+        return self.driver_handler is not None
 
-    def _get_soup(self, url: str) -> BeautifulSoup:
+    def get_soup(self, url: str) -> BeautifulSoup:
         if self._using_chrome():
-            html = self.driver.page_source
+            html = self.driver_handler.get_driver().page_source
         else:
             r = requests.get(url)
             try:
@@ -93,50 +79,21 @@ class ContentParser:
 
     def _current_dom(self) -> BeautifulSoup:
         if self._using_chrome():
-            return BeautifulSoup(self.driver.page_source, "html.parser")
+            return BeautifulSoup(self.driver_handler.get_driver().page_source, "html.parser")
         raise RuntimeError("_current_dom called without chrome driver")
 
-    def _handle_block_and_scroll(self, soup: BeautifulSoup):
+    def handle_block_and_scroll(self, soup: BeautifulSoup):
         if not self._using_chrome():
             return
         # 1) Try to bypass blocking screens (input/click) using provided handler
         try:
-            self.block_handler.handle(self.driver, soup)
-        except TargetNotFoundException:
-            # Not found elements to handle; proceed
+            self.block_handler.handle(self.driver_handler.get_driver(), soup)
+        except TargetNotFoundException as e:
+            self.logger.warning(f"Block screen handler failed", exc_info=e)
             pass
 
         # After possible interactions, DOM likely changed
         soup = self._current_dom()
 
         # 2) Apply scrolling strategy (e.g., load dynamic content)
-        self.scroll_strategy.handle(self.driver, soup)
-
-
-    def _refresh_current(self, url: str) -> None:
-        if not self._using_chrome():
-            time.sleep(page_load_check_intervals)
-            return
-        try:
-            # Simple refresh logic similar to the old flow
-            self.driver.delete_all_cookies()
-            self.driver.refresh()
-        except Exception:
-            # As a fallback, try to re-open the url
-            try:
-                self.driver.get(url)
-            except Exception:
-                pass
-
-    def _get_next_link(self, current_url: str, soup: BeautifulSoup) -> Optional[str]:
-        candidates: List[PageElement] = self.next_link_collector.collect(soup) or []
-        if len(candidates) == 0:
-            return None
-        link_el = candidates[0]
-        href = link_el.get("href") if hasattr(link_el, "get") else None
-        if not href:
-            return None
-        # Build absolute url using current page context
-        if href.startswith("javascript"):
-            return href
-        return urljoin(current_url, href)
+        self.scroll_strategy.handle(self.driver_handler.get_driver(), soup)

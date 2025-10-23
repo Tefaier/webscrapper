@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from bs4 import BeautifulSoup, PageElement
 
+from objects.file_handlers.log_writer import LogWriter
 from objects.types.field_types import FieldTypes
 from elements_finders import ElementsFinder
 from elements_post_processings import ElementsPostProcessing
@@ -10,13 +11,15 @@ from elements_post_processings import ElementsPostProcessing
 class ElementsCollector:
     def __init__(
         self,
+        log_writer: LogWriter,
         field_type: FieldTypes,
-        finders: Optional[List[ElementsFinder]] = None,
-        post_processings: Optional[List[ElementsPostProcessing]] = None,
+        finders: List[ElementsFinder],
+        post_processings: List[ElementsPostProcessing],
     ) -> None:
+        self.logger = log_writer.get_logger(type(self).__name__)
         self.field_type: FieldTypes = field_type
-        self.finders: List[ElementsFinder] = finders or []
-        self.post_processings: List[ElementsPostProcessing] = post_processings or []
+        self.finders: List[ElementsFinder] = finders
+        self.post_processings: List[ElementsPostProcessing] = post_processings
 
     def collect(self, soup: BeautifulSoup) -> List[PageElement]:
         search_from: Optional[List[PageElement]] = None
@@ -27,7 +30,9 @@ class ElementsCollector:
         elements = search_from
 
         # Apply post-processing steps consecutively
+        before = len(elements)
         for processor in self.post_processings:
             elements = processor.process(soup, elements)
+        self.logger.debug(f"Located {before} elements - {len(elements)} left after post processing")
 
         return elements or []

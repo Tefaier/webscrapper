@@ -5,6 +5,7 @@ from typing import List, Tuple, Iterable
 
 from bs4 import Tag, PageElement
 
+from objects.file_handlers.log_writer import LogWriter
 from objects.types.field_types import FieldTypes
 from objects.types.order_stategy import OrderStrategy
 
@@ -22,7 +23,8 @@ class ElementsOrderer:
         )
     """
 
-    def __init__(self, strategy: OrderStrategy = OrderStrategy.CONCAT):
+    def __init__(self, log_writer: LogWriter, strategy: OrderStrategy = OrderStrategy.CONCAT):
+        self.logger = log_writer.get_logger(type(self).__name__)
         self.strategy = strategy
 
     def order(self, typed_lists: List[Tuple[FieldTypes, List[PageElement]]]) -> List[Tuple[FieldTypes, PageElement]]:
@@ -49,7 +51,9 @@ class ElementsOrderer:
         if self.strategy == OrderStrategy.BY_SOURCELINE:
             return [(ft, e) for (ft, e, _si, _ei) in sorted(flattened, key=ElementsOrderer.source_line_sorting)]
 
-        raise ValueError(f"Unknown strategy of concatenating was used {self.strategy}")
+        message = f"Unknown strategy of concatenating was used {self.strategy}"
+        self.logger.error(message)
+        raise ValueError(message)
 
     @staticmethod
     def field_type_sorting(item: Tuple[FieldTypes, PageElement, int, int]):

@@ -1,6 +1,6 @@
 from bs4.element import NavigableString
 from chrome import uc, get_driver
-from settings import text_delimeter, MAX_OPEN_ATTEMPTS, output_file, \
+from settings_file import text_delimeter, MAX_OPEN_ATTEMPTS, output_file, \
     compare_start_ignore, accepted_length_diff, output_file_type, output_file_directory, \
     text_preview_symbols_number, parser_dict_default as PaDD, process_dict_default as PrDD, \
     sleeping_time, stylise_text, tesseract_path, link_info_part, jum_list, max_page_load_time, page_load_check_intervals, \

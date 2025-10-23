@@ -4,6 +4,7 @@ from typing import Dict, Any
 
 from bs4 import BeautifulSoup
 
+from objects.file_handlers.log_writer import LogWriter
 from objects.parsing_handlers.content_parser import ContentParser
 from objects.types.custom_exceptions import TargetNotFoundException
 from objects.web_handlers.link_handler import LinkHandler
@@ -21,7 +22,8 @@ class ParsingProcess:
     a structured result with progress and error information (if any).
     """
 
-    def __init__(self, parser: ContentParser, link_handler: LinkHandler) -> None:
+    def __init__(self, log_writer: LogWriter, parser: ContentParser, link_handler: LinkHandler) -> None:
+        self.logger = log_writer.get_logger(type(self).__name__)
         self.parser = parser
         self.link_handler = link_handler
 
@@ -49,7 +51,6 @@ class ParsingProcess:
         try:
             # Iterate requested number of times
             for _ in range(max(0, iterations)):
-
                 # Parse current URL and write content
                 self.parser.parse_content(current_url)
 
@@ -58,20 +59,22 @@ class ParsingProcess:
                 if self.parser._using_chrome():
                     soup = self.parser._current_dom()
                 else:
-                    soup = self.parser._get_soup(current_url)
+                    soup = self.parser.get_soup(current_url)
 
                 # Try to follow the next link; if missing, we finish early successfully
                 try:
-                    self._sync_driver()
                     next_url = self.link_handler.navigate(current_url, soup)
-                except TargetNotFoundException:
+                except TargetNotFoundException as e:
+                    self.logger.warning(f"Didn't find link - early termination", exc_info=e)
                     processed += 1
-                    result.update({
-                        "success": True,
-                        "processed": processed,
-                        "last_url": current_url,
-                        "finished_early": True,
-                    })
+                    result.update(
+                        {
+                            "success": True,
+                            "processed": processed,
+                            "last_url": current_url,
+                            "finished_early": True,
+                        }
+                    )
                     return result
 
                 # Step completed
@@ -79,32 +82,31 @@ class ParsingProcess:
                 current_url = next_url or current_url
 
             # All iterations completed
-            result.update({
-                "success": True,
-                "processed": processed,
-                "last_url": current_url,
-            })
+            result.update(
+                {
+                    "success": True,
+                    "processed": processed,
+                    "last_url": current_url,
+                }
+            )
+            self.logger.debug("All processed - finishing")
             return result
         except Exception as e:
-            result.update({
-                "success": False,
-                "processed": processed,
-                "last_url": current_url,
-                "error_type": type(e).__name__,
-                "error_message": str(e),
-            })
+            self.logger.error(f"Failed at iteration {processed}", exc_info=e)
+            result.update(
+                {
+                    "success": False,
+                    "processed": processed,
+                    "last_url": current_url,
+                    "error_type": type(e).__name__,
+                    "error_message": str(e),
+                }
+            )
             return result
         finally:
             # Ensure the output is closed
             try:
                 self.parser.orchestra.output.close()
-            except Exception:
+            except Exception as e:
+                self.logger.error("Failed while closing output", exc_info=e)
                 pass
-
-    def _sync_driver(self):
-        try:
-            if getattr(self.parser, "driver", None) is not None:
-                self.link_handler.set_driver(self.parser.driver)
-        except Exception:
-            # Non-fatal if LinkHandler does not expose set_driver
-            pass

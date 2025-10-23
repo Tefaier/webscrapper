@@ -4,7 +4,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
 from utils.web_functions import fill_standard_chrome_options
-from settings import window_w, window_h, screen_w, screen_h, chrome_driver_path, process_dict_default as PrDD
+from settings_file import window_w, window_h, chrome_driver_path, process_dict_default as PrDD
 
 def get_driver(chosen_dict: dict):
     chrome_dir = chosen_dict.get("chrome_dir", PrDD.get("chrome_dir"))
@@ -15,7 +15,6 @@ def get_driver(chosen_dict: dict):
     else:
         driver = usual(chrome_dir, chrome_profile)
 
-    driver.set_window_position((screen_w - window_w) * 0.5, (screen_h - window_h) * 0.5)
     driver.set_window_size(window_w, window_h)
 
     return driver

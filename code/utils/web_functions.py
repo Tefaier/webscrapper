@@ -6,7 +6,7 @@ from typing import Union, Dict, List
 import cssutils
 import cv2
 import numpy as np
-from bs4 import BeautifulSoup, PageElement, Tag
+from bs4 import BeautifulSoup, PageElement, Tag, NavigableString
 from pytesseract import pytesseract
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -135,3 +135,12 @@ def get_screen_of_element(driver: WebDriver, element: WebElement, offset_x: int,
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
     return buffer.getvalue()
+
+def replace_element_with_text(soup: BeautifulSoup, element: PageElement, text: str) -> PageElement:
+        if isinstance(element, Tag):
+            replacement = soup.new_tag('p')
+            replacement.string = text
+            element.replace_with(replacement)
+            return replacement
+        else:
+            return NavigableString(text)

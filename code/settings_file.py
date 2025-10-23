@@ -1,9 +1,7 @@
 import ctypes
 
-# don't edit these
-user32 = ctypes.windll.user32
-screen_w = user32.GetSystemMetrics(0)
-screen_h = user32.GetSystemMetrics(1)
+from pytesseract import pytesseract
+
 
 # editable
 output_file_directory = "../temp/output/"  # directory where to save results, empty by default
@@ -11,10 +9,15 @@ output_file = "output"  # name to output file
 output_file_type = "txt"  # extension of output file, only html|txt|docx are supported
 
 image_width = 12  # image width in cm to put in word
+window_w_min = 500
+window_h_min = 500
+window_w_max = 1920
+window_h_max = 1080
 window_w = 1920  # chrome window width
 window_h = 1080  # chrome window height
 chrome_driver_path = "C:/Users/timab/Downloads/chromedriver-win64/chromedriver.exe"  # path to chromedriver
 tesseract_path = "C:/Program Files/Tesseract-OCR/tesseract.exe"  # path to tesseract
+pytesseract.tesseract_cmd = tesseract_path
 
 max_page_load_time = 1  # how much to wait for the page to load its chapter holder, works only with chrome
 page_load_check_intervals = 1  # intervals between checking if the page was loaded

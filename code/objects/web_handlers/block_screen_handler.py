@@ -7,15 +7,17 @@ from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 
+from objects.file_handlers.log_writer import LogWriter
 from utils.web_functions import xpath_soup
-from ..types.custom_exceptions import TargetNotFoundException
+from objects.types.custom_exceptions import TargetNotFoundException
 
 from objects.elements.elements_finders import ElementsFinder
 from objects.web_handlers.web_handler import WebHandler
 
 
-class BlockScreenHandler(WebHandler, ABC):
-    pass
+class BlockScreenHandler(WebHandler):
+    def __init__(self, log_writer: LogWriter):
+        self.logger = log_writer.get_logger(type(self).__name__)
 
 
 class NoHandling(BlockScreenHandler):
@@ -24,7 +26,8 @@ class NoHandling(BlockScreenHandler):
 
 
 class CollectedHandler(BlockScreenHandler):
-    def __init__(self, sub_handlers: List[BlockScreenHandler]):
+    def __init__(self, log_writer: LogWriter, sub_handlers: List[BlockScreenHandler]):
+        super().__init__(log_writer)
         self.sub_handlers = sub_handlers
 
     def handle(self, driver: WebDriver, soup: BeautifulSoup) -> None:
@@ -33,7 +36,8 @@ class CollectedHandler(BlockScreenHandler):
 
 
 class FieldInputHandler(BlockScreenHandler):
-    def __init__(self, input_finder: ElementsFinder, to_input: str):
+    def __init__(self, log_writer: LogWriter, input_finder: ElementsFinder, to_input: str):
+        super().__init__(log_writer)
         self.input_finder = input_finder
         self.to_input = to_input
 
@@ -50,7 +54,8 @@ class FieldInputHandler(BlockScreenHandler):
 
 
 class ButtonClickHandler(BlockScreenHandler):
-    def __init__(self, button_finder: ElementsFinder):
+    def __init__(self, log_writer: LogWriter, button_finder: ElementsFinder):
+        super().__init__(log_writer)
         self.button_finder = button_finder
 
     def handle(self, driver: WebDriver, soup: BeautifulSoup) -> None:
