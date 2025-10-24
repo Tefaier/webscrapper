@@ -1,8 +1,7 @@
 import uuid
 from objects.parsing_handlers.parsing_process import ParsingProcess
-from settings.builders_defaults import LOG_WRITER_NAME, PARSER_NAME, LINK_HANDLER_NAME
+from objects.builders.website_resolve import resolve_website
 from settings_file import active_parser_dicts, active_process_dicts
-from objects.builders.builder import BaseBuilder
 
 StartingURL = "https://gravitytales.com/story/i-bring-the-game-into-reality/chapter-200-11/"
 process_id = str(uuid.uuid4())
@@ -16,16 +15,7 @@ def read_pages(start_page=StartingURL, parts_to_make=1):
     console_part = 1
     website = start_page.split("/")[2]
     try:
-        builder = BaseBuilder()
-        builder.configure(LOG_WRITER_NAME, active_process_dicts[website])
-        builder.configure(PARSER_NAME, active_parser_dicts[website])
-        builder.configure(LINK_HANDLER_NAME, active_process_dicts[website])
-
-        parsing_process = ParsingProcess(
-            log_writer=builder.create(LOG_WRITER_NAME),
-            parser=builder.create(PARSER_NAME),
-            link_handler=builder.create(LINK_HANDLER_NAME),
-        )
+        parsing_process = resolve_website(website, process_id)
 
         result = parsing_process.parse_iterations(start_page, parts_to_make)
         result["process_id"] = process_id
