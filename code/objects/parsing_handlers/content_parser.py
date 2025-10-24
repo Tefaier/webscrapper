@@ -1,14 +1,10 @@
 from __future__ import annotations
 
 import time
-from typing import Optional, List
-from urllib.parse import urljoin
+from typing import Optional
 
 import requests
-from bs4 import BeautifulSoup, PageElement
-from selenium.webdriver.chrome.webdriver import WebDriver
-
-from objects.elements.elements_collector import ElementsCollector
+from bs4 import BeautifulSoup
 from objects.elements.elements_orchestra import ElementsOrchestra
 from objects.file_handlers.log_writer import LogWriter
 from objects.types.custom_exceptions import TargetNotFoundException
@@ -97,3 +93,15 @@ class ContentParser:
 
         # 2) Apply scrolling strategy (e.g., load dynamic content)
         self.scroll_strategy.handle(self.driver_handler.get_driver(), soup)
+
+    def close(self):
+        try:
+            self.orchestra.output.close()
+        except Exception as e:
+            self.logger.error("Failed while closing output", exc_info=e)
+        try:
+            if self.driver_handler:
+                self.driver_handler.get_driver().delete_all_cookies()
+                self.driver_handler.get_driver().close()
+        except Exception as e:
+            self.logger.error("Failed while clearing driver", exc_info=e)

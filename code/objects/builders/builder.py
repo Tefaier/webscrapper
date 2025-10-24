@@ -11,11 +11,12 @@ class BaseBuilder:
 
     In constructor parameters defaults can be omitted, other instances can be references by $name
     """
+
     def __init__(self):
         self._registry = {}
         self._config = {}
         self._created = {}
-        self._creating = MutableSet()
+        self._creating = set()
 
     def register(self, name: str, cls: Type):
         self._registry[name] = cls
@@ -46,7 +47,7 @@ class BaseBuilder:
         params = {}
 
         for param_name, param in sig.parameters.items():
-            if param_name == 'self':
+            if param_name == "self":
                 continue
 
             if param_name in merged_kwargs:

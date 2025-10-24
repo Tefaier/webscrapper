@@ -17,7 +17,7 @@ class ByAttributesFinder(ElementsFinder):
     def __init__(
         self,
         log_writer: LogWriter,
-        search_types: str,
+        search_types: List[str],
         search_limits: Dict[str, str] = None,
     ):
         super().__init__(log_writer)
@@ -30,7 +30,7 @@ class ByAttributesFinder(ElementsFinder):
             search_from = [soup]
         for origin in search_from:
             if isinstance(origin, Tag):
-                results += origin.find_all(self.search_types, self.search_limits)
+                results += origin.find_all(self.search_types, attrs=self.search_limits)
             elif isinstance(origin, PageElement):
                 results.append(origin)
         self.logger.debug(f"Found {len(results)} elements (started from {len(search_from)})")
@@ -41,7 +41,7 @@ class ByTextFinder(ElementsFinder):
     def __init__(
         self,
         log_writer: LogWriter,
-        search_types: str,
+        search_types: List[str],
         inner_context: str,
     ):
         super().__init__(log_writer)

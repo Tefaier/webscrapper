@@ -3,6 +3,7 @@ RELOAD_HANDLER_NAME = "reload_handler"
 ORCHESTRA_NAME = "orchestra"
 LINK_HANDLER_NAME = "link_handler"
 MAIN_BLOCK_HANDLER_NAME = "main_block_handler"
+BLOCK_HANDLER_NAME = "block_handler"
 ORDERER_NAME = "orderer"
 PARSER_NAME = "parser"
 PARSING_PROCESS_NAME = "parsing_process"
@@ -10,3 +11,12 @@ LOG_WRITER_NAME = "log_writer"
 DRIVER_HANDLER_NAME = "driver_handler"
 LINK_COLLECTOR_NAME = "link_collector"
 OUTPUT_WRITER_NAME = "output_writer"
+FINDER_NAME = "finder"
+COLLECTOR_NAME = "collector"
+POST_PROCESSING_NAME = "post_processing"
+DEFAULT_POST_PROCESSINGS = [
+    f"{POST_PROCESSING_NAME}_default_vis",
+    f"{POST_PROCESSING_NAME}_default_sub",
+    f"{POST_PROCESSING_NAME}_default_nor",
+    f"{POST_PROCESSING_NAME}_default_rep",
+]

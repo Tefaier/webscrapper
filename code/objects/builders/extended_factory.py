@@ -1,4 +1,5 @@
-from typing import Type, Dict, Any, Self, Optional, List
+from typing import Type, Dict, Any, Optional, List
+from typing_extensions import Self
 
 from objects.builders.builder import BaseBuilder
 from objects.file_handlers.log_writer import LogWriter
@@ -19,7 +20,13 @@ from objects.web_handlers.block_screen_handler import (
 from objects.web_handlers.reload_handler import ReloadHandler
 from objects.elements.elements_finders import ElementsFinder
 from objects.elements.elements_collector import ElementsCollector
-from objects.elements.elements_post_processings import ElementsPostProcessing
+from objects.elements.elements_post_processings import (
+    ElementsPostProcessing,
+    VisibilityFilter,
+    SubtreeRemovalFilter,
+    TextNormalizer,
+    RepeatsFilter,
+)
 from objects.elements.elements_orderer import ElementsOrderer
 from objects.elements.elements_orchestra import ElementsOrchestra
 from objects.types.field_types import FieldTypes
@@ -75,6 +82,7 @@ class ExtendedFactory:
         self.scroll(NoScroll)
         self.main_block_handler(NoHandling)
         self.output("txt")
+        self.default_post_processing()
 
     # -------- basic API passthroughs --------
     def register(self, name: str, cls: Type) -> Self:
@@ -173,12 +181,12 @@ class ExtendedFactory:
     # -------- web-handlers --------
     def scroll(self, cls: Type[ScrollStrategy], **cfg) -> Self:
         self.builder.register(SCROLL_NAME, cls)
-        self.builder.add_config(SCROLL_NAME, cfg)
+        self.builder.add_config(SCROLL_NAME, {"log_writer": f"${LOG_WRITER_NAME}", **cfg})
         return self
 
     def block_handler(self, name: str, cls: Type[BlockScreenHandler], **cfg) -> Self:
         self.builder.register(name, cls)
-        self.builder.add_config(name, cfg)
+        self.builder.add_config(name, {"log_writer": f"${LOG_WRITER_NAME}", **cfg})
         return self
 
     def main_block_handler(self, cls: Type[BlockScreenHandler], **cfg) -> Self:
@@ -219,8 +227,19 @@ class ExtendedFactory:
         )
         return self
 
+    def default_post_processing(self) -> Self:
+        self.builder.register(f"{POST_PROCESSING_NAME}_default_vis", VisibilityFilter)
+        self.builder.add_config(f"{POST_PROCESSING_NAME}_default_vis", {"log_writer": f"${LOG_WRITER_NAME}"})
+        self.builder.register(f"{POST_PROCESSING_NAME}_default_sub", SubtreeRemovalFilter)
+        self.builder.add_config(f"{POST_PROCESSING_NAME}_default_sub", {"log_writer": f"${LOG_WRITER_NAME}"})
+        self.builder.register(f"{POST_PROCESSING_NAME}_default_nor", TextNormalizer)
+        self.builder.add_config(f"{POST_PROCESSING_NAME}_default_nor", {"log_writer": f"${LOG_WRITER_NAME}"})
+        self.builder.register(f"{POST_PROCESSING_NAME}_default_rep", RepeatsFilter)
+        self.builder.add_config(f"{POST_PROCESSING_NAME}_default_rep", {"log_writer": f"${LOG_WRITER_NAME}"})
+        return self
+
     # -------- parser wiring --------
-    def parser(self) -> Self:
+    def _parser(self) -> Self:
         self._parser_called = True
         cfg = {
             "log_writer": f"${LOG_WRITER_NAME}",
@@ -240,17 +259,15 @@ class ExtendedFactory:
             raise UnsupportedArgumentsException(
                 "Link collector is not configured. Call link_collector(...) before finish()."
             )
-        if not self._link_handler_called:
-            raise UnsupportedArgumentsException(
-                "Link handler is not configured. Call link_handler(...) before finish()."
-            )
         if not self._orchestra_called:
             raise UnsupportedArgumentsException("Orchestra is not configured. Call orchestra(...) before finish().")
         # here to link driver in case it was created
+        if not self._link_handler_called:
+            self.link_handler()
         if not self._reload_handler_called:
             self.reload_handler()
         if not self._parser_called:
-            self.parser()
+            self._parser()
         return self.builder.create(PARSING_PROCESS_NAME)
 
 

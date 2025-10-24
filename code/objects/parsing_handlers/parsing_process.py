@@ -3,12 +3,15 @@ from __future__ import annotations
 from typing import Dict, Any
 
 from bs4 import BeautifulSoup
+from pytesseract import pytesseract
 
 from objects.file_handlers.log_writer import LogWriter
 from objects.parsing_handlers.content_parser import ContentParser
 from objects.types.custom_exceptions import TargetNotFoundException
 from objects.web_handlers.link_handler import LinkHandler
+from settings.system_defaults import TESSERACT_PATH
 
+pytesseract.tesseract_cmd = TESSERACT_PATH
 
 class ParsingProcess:
     """
@@ -104,9 +107,4 @@ class ParsingProcess:
             )
             return result
         finally:
-            # Ensure the output is closed
-            try:
-                self.parser.orchestra.output.close()
-            except Exception as e:
-                self.logger.error("Failed while closing output", exc_info=e)
-                pass
+            self.parser.close()

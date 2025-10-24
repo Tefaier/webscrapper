@@ -3,9 +3,10 @@ from typing import List
 from bs4 import BeautifulSoup, NavigableString, Tag, PageElement
 from selenium.webdriver.chrome.webdriver import WebDriver
 
-from objects.elements.elements_collector import ElementsCollector
+from objects.elements.elements_finders import ElementsFinder
 from objects.file_handlers.log_writer import LogWriter
 from objects.types.custom_exceptions import UnsupportedArgumentsException
+from settings.elements_defaults import FILTER_NO_MEANING, SPACES_NORMALIZATION, SYMBOLS_CONVERTION, REPEAT_TOLERANCE
 from utils.text_functions import (
     string_with_meaning,
     string_with_style,
@@ -45,7 +46,7 @@ class SidesCutFiltering(ElementsPostProcessing):
 class ExactElementTaker(ElementsPostProcessing):
     def __init__(self, log_writer: LogWriter, take_at_index: int = 0):
         super().__init__(log_writer)
-        self.index: int = max(0, take_at_index)
+        self.index: int = take_at_index
 
     def process(self, soup: BeautifulSoup, elements: List[PageElement]) -> List[PageElement]:
         if len(elements) > self.index:
@@ -85,15 +86,16 @@ class JammedTextConverter(ElementsPostProcessing):
     def __init__(
         self,
         log_writer: LogWriter,
+        jammed_finder: ElementsFinder = None,
         driver: WebDriver = None,
         expected_languages: List[str] = None,
-        jammed_classes: List[str] = None,
         try_fix_text: bool = True,
     ):
         super().__init__(log_writer)
         self.driver = driver
+        self.jammed_finder = jammed_finder
         self.expected_languages = expected_languages if expected_languages is not None else ["eng"]
-        self.jammed_classes = jammed_classes if jammed_classes is not None else ["jum", "jmbl"]
+        # self.jammed_classes = jammed_classes if jammed_classes is not None else ["jum", "jmbl"]
         self.fix = try_fix_text
 
     def process(self, soup: BeautifulSoup, elements: List[PageElement]) -> List[PageElement]:
@@ -101,7 +103,7 @@ class JammedTextConverter(ElementsPostProcessing):
             return elements
         return [
             replace_element_with_text(soup, element, self._convert_to_text(element))
-            if self._check_element_is_jammed(element)
+            if self._check_element_is_jammed(soup, element)
             else element
             for element in elements
         ]
@@ -114,23 +116,14 @@ class JammedTextConverter(ElementsPostProcessing):
             self.logger.debug(f"Fixing result: {result}")
         return result
 
-    def _check_element_is_jammed(self, element: PageElement):
+    def _check_element_is_jammed(self, soup: BeautifulSoup, element: PageElement) -> bool:
         if isinstance(element, Tag):
-            result = element.find("img") is not None or self._recursive_attr_check(element)
+            result = element.find("img") is not None or len(self.jammed_finder.find(soup, [element])) > 0
         else:
             result = False
         if result:
             self.logger.debug(f"Element {element.__repr__()} was deemed jammed")
         return result
-
-    def _recursive_attr_check(self, element: PageElement):
-        if isinstance(element, Tag):
-            if element.has_attr("class") and any(
-                jammed_class in element["class"] for jammed_class in self.jammed_classes
-            ):
-                return True
-            return any(self._recursive_attr_check(child) for child in element.contents)
-        return False
 
 
 class SubtreeRemovalFilter(ElementsPostProcessing):
@@ -159,16 +152,16 @@ class SubtreeRemovalFilter(ElementsPostProcessing):
 
 class ExcludeByCollectorFilter(ElementsPostProcessing):
     """
-    Uses a provided ElementsCollector to find elements in the soup and excludes them from the given list.
+    Uses a provided ElementsCollector to find elements in given and excludes them from the given list.
     Only elements present in both the input list and the collector's results are removed.
     """
 
-    def __init__(self, log_writer: LogWriter, collector: ElementsCollector):
+    def __init__(self, log_writer: LogWriter, finder: ElementsFinder):
         super().__init__(log_writer)
-        self.collector = collector
+        self.finder = finder
 
     def process(self, soup: BeautifulSoup, elements: List[PageElement]) -> List[PageElement]:
-        to_exclude = self.collector.collect(soup)
+        to_exclude = self.finder.find(soup, elements)
         if not to_exclude:
             return elements
         exclude_ids = {id(e) for e in to_exclude}
@@ -229,7 +222,11 @@ class SplitTagContentByInnerTags(ElementsPostProcessing):
 
 class TextNormalizer(ElementsPostProcessing):
     def __init__(
-        self, log_writer: LogWriter, filter_no_meaning: bool, spaces_normalization: bool, symbols_convertion: bool
+        self,
+        log_writer: LogWriter,
+        filter_no_meaning: bool = FILTER_NO_MEANING,
+        spaces_normalization: bool = SPACES_NORMALIZATION,
+        symbols_convertion: bool = SYMBOLS_CONVERTION,
     ):
         super().__init__(log_writer)
         self.filter_no_meaning = filter_no_meaning
@@ -252,12 +249,13 @@ class TextNormalizer(ElementsPostProcessing):
 
     def _check_meaning(self, element: PageElement) -> bool:
         result = string_with_meaning(element.text)
-        self.logger.debug(f"Deemed element to have no meaning: {element.__repr__()}")
+        if not result:
+            self.logger.debug(f"Deemed element to have no meaning: {element.__repr__()}")
         return result
 
 
 class RepeatsFilter(ElementsPostProcessing):
-    def __init__(self, log_writer: LogWriter, tolerance: int):
+    def __init__(self, log_writer: LogWriter, tolerance: int = REPEAT_TOLERANCE):
         super().__init__(log_writer)
 
         self.tolerance = max(0, tolerance)
@@ -272,5 +270,5 @@ class RepeatsFilter(ElementsPostProcessing):
         if not is_same:
             self.last_string = element.text
         else:
-            self.logger.debug(f"Deemed element to be a repetition: {element.__repr__()}")
+            self.logger.debug(f"Deemed element to be a repetition: {element.__repr__()} prev: {self.last_string}")
         return not is_same

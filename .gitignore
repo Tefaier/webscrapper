@@ -2,4 +2,9 @@
 /code/output/
 /old_versions/
 /venv/
-/code/output/
+/temp/output/
+.idea
+.vscode
+.aider*
+backup
+/dependencies/*

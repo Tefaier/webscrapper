@@ -14,7 +14,7 @@ from objects.file_handlers.log_writer import LogWriter
 from objects.file_handlers.output_writers import OutputWriter
 from objects.types.custom_exceptions import TargetNotFoundException
 from objects.types.field_types import FieldTypes
-from settings.elements_defaults import LINK_INFO_PART
+from settings.elements_defaults import LINK_INFO_PART, MIN_EXPECTED_PARAGRAPHS, MIN_EXPECTED_CHARS
 
 
 class ElementsOrchestra:
@@ -34,8 +34,8 @@ class ElementsOrchestra:
         collectors: List[ElementsCollector],
         orderer: ElementsOrderer,
         output: OutputWriter,
-        min_expected: int = 1,
-        min_expected_text: int = 1,
+        min_expected: int = MIN_EXPECTED_PARAGRAPHS,
+        min_expected_text: int = MIN_EXPECTED_CHARS,
     ) -> None:
         self.logger = log_writer.get_logger(type(self).__name__)
         self.collectors = collectors

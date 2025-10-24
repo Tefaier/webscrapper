@@ -4,8 +4,8 @@ from bs4 import BeautifulSoup, PageElement
 
 from objects.file_handlers.log_writer import LogWriter
 from objects.types.field_types import FieldTypes
-from elements_finders import ElementsFinder
-from elements_post_processings import ElementsPostProcessing
+from objects.elements.elements_finders import ElementsFinder
+from objects.elements.elements_post_processings import ElementsPostProcessing
 
 
 class ElementsCollector:
