@@ -1,7 +1,6 @@
 import re
 import html
 
-import Levenshtein
 import unicodedata
 
 encountered_strings = []

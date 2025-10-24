@@ -6,5 +6,5 @@
 .idea
 .vscode
 .aider*
-backup
+old_versions/backup
 /dependencies/*
