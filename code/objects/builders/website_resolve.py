@@ -76,6 +76,7 @@ def link(
     )
 
 
+recognized_websites: List[str] = []
 chrome_websites: List[str] = []
 chrome_undetected_websites: List[str] = []
 scroll_websites: Dict[str, Dict[str, Any]] = {}
@@ -925,5 +926,6 @@ def _mk_link(site_cfg: Dict[str, Any]) -> Callable[[ExtendedFactory], Any]:
 
 # Build content/link entries for every website declared in old parser dict
 for _site, _cfg in active_parser_dicts.items():
+    recognized_websites.append(_site)
     content_websites[_site] = _mk_content(_cfg)
     link_websites[_site] = _mk_link(_cfg)

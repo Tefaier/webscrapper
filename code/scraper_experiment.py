@@ -8,7 +8,7 @@ from settings.system_defaults import TESSERACT_PATH, TEMP_FOLDER
 pytesseract.tesseract_cmd = TESSERACT_PATH
 os.makedirs(TEMP_FOLDER, exist_ok=True)
 
-StartingURL = "https://gravitytales.com/story/i-bring-the-game-into-reality/chapter-200-11/"
+StartingURL = "https://gravitytales.com/story/i-bring-the-game-into-reality/chapter-300-8/"
 process_id = str(uuid.uuid4())
 
 
