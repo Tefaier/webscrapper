@@ -60,3 +60,31 @@ class RequestDatabase:
                 "UPDATE requests SET status = 'FAILED', completed_at = CURRENT_TIMESTAMP, result_file = ?, log_file = ? WHERE id = ?",
                 (result_file, log_file, json.dumps(details), request_id),
             )
+
+    def claim_pending_requests(self, max_count: int) -> list[int]:
+        """Atomically get and update oldest CREATED requests to ACTIVE status"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            # First select IDs of oldest pending requests
+            cursor.execute(
+                "SELECT id FROM requests "
+                "WHERE status = 'CREATED' "
+                "ORDER BY created_at ASC "
+                "LIMIT ?",
+                (max_count,)
+            )
+            ids = [row[0] for row in cursor.fetchall()]
+            
+            if ids:
+                # Atomically update status for selected IDs
+                cursor.execute(
+                    "UPDATE requests SET status = 'ACTIVE' "
+                    "WHERE id IN ("
+                    "  SELECT id FROM requests "
+                    "  WHERE status = 'CREATED' "
+                    "  ORDER BY created_at ASC "
+                    "  LIMIT ?"
+                    ")",
+                    (max_count,)
+                )
+            return ids

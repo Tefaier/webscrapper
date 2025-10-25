@@ -23,3 +23,7 @@ class DatabaseService:
     async def fail_processing(self, request_id: int, details: Dict[str, Any], result_file: str, log_file: str):
         """Mark a request as failed with error message"""
         self.db.fail_processing(request_id, details, result_file, log_file)
+
+    async def get_pending_requests(self, max_count: int) -> list[int]:
+        """Get oldest CREATED requests and mark them as ACTIVE"""
+        return self.db.claim_pending_requests(max_count)
