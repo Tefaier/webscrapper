@@ -1,11 +1,11 @@
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-from objects.db.database import RequestDatabase
+from objects.db.request_database import RequestDatabase
 
 
 class DatabaseService:
-    def __init__(self, db_path: str = "requests.db"):
+    def __init__(self, db_path: str = "app.db"):
         self.db = RequestDatabase(db_path)
 
     async def create_request(self, url: str, chapters: int) -> int:
@@ -23,4 +23,3 @@ class DatabaseService:
     async def fail_processing(self, request_id: int, details: Dict[str, Any], result_file: str, log_file: str):
         """Mark a request as failed with error message"""
         self.db.fail_processing(request_id, details, result_file, log_file)
-
