@@ -76,15 +76,11 @@ class RequestDatabase:
             ids = [row[0] for row in cursor.fetchall()]
             
             if ids:
-                # Atomically update status for selected IDs
+                # Atomically update status for selected IDs using explicit IDs
+                placeholders = ', '.join(['?'] * len(ids))
                 cursor.execute(
-                    "UPDATE requests SET status = 'ACTIVE' "
-                    "WHERE id IN ("
-                    "  SELECT id FROM requests "
-                    "  WHERE status = 'CREATED' "
-                    "  ORDER BY created_at ASC "
-                    "  LIMIT ?"
-                    ")",
-                    (max_count,)
+                    f"UPDATE requests SET status = 'ACTIVE' "
+                    f"WHERE id IN ({placeholders})",
+                    ids
                 )
             return ids
