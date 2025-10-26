@@ -1,7 +1,7 @@
 import base64
 import io
 import re
-from typing import Union, Dict, List
+from typing import Optional, Union, Dict, List
 
 import cssutils
 import cv2
@@ -15,7 +15,8 @@ from selenium.webdriver.remote.webelement import WebElement
 from undetected_chromedriver import ChromeOptions
 from PIL import Image
 
-def xpath_soup(element: PageElement) -> str:  # from https://gist.github.com/ergoithz/6cf043e3fdedd1b94fcf
+# from https://gist.github.com/ergoithz/6cf043e3fdedd1b94fcf
+def xpath_soup(element: PageElement) -> str:
     components = []
     child = element if element.name else element.parent
     for parent in child.parents:
@@ -144,3 +145,9 @@ def replace_element_with_text(soup: BeautifulSoup, element: PageElement, text: s
             return replacement
         else:
             return NavigableString(text)
+        
+def get_domain(url: str) -> Optional[str]:
+    domain = re.search(r'https?://([^/]+)', url)
+    if domain:
+        return domain.group(1)
+    return None

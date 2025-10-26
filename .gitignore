@@ -1,5 +1,5 @@
 /tests/
-/code/output/
+/src/output/
 /old_versions/
 /venv/
 /temp/output/
@@ -8,3 +8,4 @@
 .aider*
 old_versions/backup
 /dependencies/*
+.env

@@ -35,7 +35,7 @@ class ContentParser:
         scroll_strategy: ScrollStrategy,
         block_handler: BlockScreenHandler,
         reload_handler: ReloadHandler,
-        driver_handler: DriverHandler = None,
+        driver_handler: Optional[DriverHandler] = None,
     ) -> None:
         self.logger = log_writer.get_logger(type(self).__name__)
         self.orchestra = orchestra

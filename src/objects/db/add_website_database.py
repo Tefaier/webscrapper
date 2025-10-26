@@ -18,7 +18,7 @@ class AddWebsiteDatabase:
                 """
                 CREATE TABLE IF NOT EXISTS add_website (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    url TEXT NOT NULL
+                    url TEXT NOT NULL UNIQUE
             )
             """
             )
@@ -43,7 +43,7 @@ class AddWebsiteDatabase:
             row = cursor.fetchone()
             return AddWebsite(id=row[0], url=row[1]) if row else None
 
-    def insert(self, url: str) -> int:
+    def insert(self, url: str) -> Optional[int]:
         """Insert a new website URL and return the generated ID"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("INSERT INTO add_website (url) VALUES (?)", (url,))

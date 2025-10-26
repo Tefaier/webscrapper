@@ -1,3 +1,4 @@
+import os
 from typing import Type, Dict, Any, Optional, List
 from typing_extensions import Self
 
@@ -48,6 +49,7 @@ class ExtendedFactory:
     """
 
     def __init__(self, process_id: str):
+        os.makedirs(f"{OUTPUT_FILE_DIRECTORY}/{self.pid}", exist_ok=True)
         self.builder = BaseBuilder()
         self.pid = process_id
         # internal state for dynamic wiring and unique names
@@ -63,7 +65,7 @@ class ExtendedFactory:
     # -------- defaults --------
     def _create_defaults(self):
         self.builder.register(LOG_WRITER_NAME, LogWriter)
-        self.builder.add_config(LOG_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}{self.pid}_log.txt"})
+        self.builder.add_config(LOG_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.pid}/log.txt"})
 
         # core endpoints
         self.builder.register(ORDERER_NAME, ElementsOrderer)
@@ -113,15 +115,15 @@ class ExtendedFactory:
     def output(self, file_type: str, image_width: float = None) -> Self:
         if file_type == "txt":
             self.builder.register(OUTPUT_WRITER_NAME, TxtWriter)
-            self.builder.add_config(OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}{self.pid}.txt"})
+            self.builder.add_config(OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.pid}/result.txt"})
         elif file_type == "html":
             self.builder.register(OUTPUT_WRITER_NAME, HtmlWriter)
-            self.builder.add_config(OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}{self.pid}.html"})
+            self.builder.add_config(OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.pid}/result.html"})
         elif file_type == "docx":
             self.builder.register(OUTPUT_WRITER_NAME, DocxWriter)
             self.builder.add_config(
                 OUTPUT_WRITER_NAME,
-                _clear_nones({"full_path": f"{OUTPUT_FILE_DIRECTORY}{self.pid}.docx", "image_width": image_width}),
+                _clear_nones({"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.pid}/result.docx", "image_width": image_width}),
             )
         else:
             raise UnsupportedArgumentsException(f"Unsupported file type: {file_type}")

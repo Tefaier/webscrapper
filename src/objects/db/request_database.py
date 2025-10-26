@@ -2,6 +2,8 @@ import sqlite3
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 import json
+from uuid import UUID
+import uuid
 
 from dto.request import Request
 
@@ -34,7 +36,7 @@ class RequestDatabase:
             )
 
     def get_request(self, id: int) -> Optional[Request]:
-        """Create a new request and return its ID"""
+        """Get request by ID"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM requests WHERE id = ?", (id,))
@@ -60,13 +62,26 @@ class RequestDatabase:
                 details=request_dict["details"],
                 expired=request_dict["expired"],
             )
+        
+    def get_request_by_request_id(self, rid: UUID) -> Optional[Request]:
+        """Get request by process id"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM requests WHERE process_id = ?", (str(rid),))
+            result = cursor.fetchone()
+
+            if result is None:
+                return None
+
+        return self.get_request(result[0])
 
     def create_request(self, url: str, chapters: int) -> int:
         """Create a new request and return its ID"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO requests (url, chapters) VALUES (?, ?)", (url, chapters))
-            return cursor.lastrowid
+            cursor.execute("INSERT INTO requests (url, chapters, process_id) VALUES (?, ?, ?)", (url, chapters, str(uuid.uuid4())))
+            conn.commit()
+            return cursor.lastrowid # type: ignore
 
     def start_processing(self, request_id: int, process_id: str):
         """Mark a request as in progress"""
