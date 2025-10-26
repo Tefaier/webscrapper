@@ -27,8 +27,6 @@ class RequestDatabase:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     started_at TIMESTAMP,
                     completed_at TIMESTAMP,
-                    result_file TEXT,
-                    log_file TEXT,
                     details TEXT,
                     expired BOOLEAN DEFAULT false
             )
@@ -57,12 +55,10 @@ class RequestDatabase:
                 created_at=request_dict["created_at"],
                 started_at=request_dict["started_at"],
                 completed_at=request_dict["completed_at"],
-                result_file=request_dict["result_file"],
-                log_file=request_dict["log_file"],
                 details=request_dict["details"],
                 expired=request_dict["expired"],
             )
-        
+
     def get_request_by_request_id(self, rid: UUID) -> Optional[Request]:
         """Get request by process id"""
         with sqlite3.connect(self.db_path) as conn:
@@ -79,32 +75,26 @@ class RequestDatabase:
         """Create a new request and return its ID"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO requests (url, chapters, process_id) VALUES (?, ?, ?)", (url, chapters, str(uuid.uuid4())))
-            conn.commit()
-            return cursor.lastrowid # type: ignore
-
-    def start_processing(self, request_id: int, process_id: str):
-        """Mark a request as in progress"""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                "UPDATE requests SET status = 'ACTIVE', process_id = ?, started_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (process_id, request_id),
+            cursor.execute(
+                "INSERT INTO requests (url, chapters, process_id) VALUES (?, ?, ?)", (url, chapters, str(uuid.uuid4()))
             )
+            conn.commit()
+            return cursor.lastrowid  # type: ignore
 
-    def complete_processing(self, request_id: int, details: Dict[str, Any], result_file: str, log_file: str):
+    def complete_processing(self, request_id: int, details: Dict[str, Any]):
         """Mark a request as completed with results"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "UPDATE requests SET status = 'SUCCESS', completed_at = CURRENT_TIMESTAMP, result_file = ?, log_file = ? WHERE id = ?",
-                (result_file, log_file, json.dumps(details), request_id),
+                "UPDATE requests SET status = 'SUCCESS', completed_at = CURRENT_TIMESTAMP, details = ? WHERE id = ?",
+                (json.dumps(details), request_id),
             )
 
-    def fail_processing(self, request_id: int, details: Dict[str, Any], result_file: str, log_file: str):
+    def fail_processing(self, request_id: int, details: Dict[str, Any]):
         """Mark a request as failed"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "UPDATE requests SET status = 'FAILED', completed_at = CURRENT_TIMESTAMP, result_file = ?, log_file = ? WHERE id = ?",
-                (result_file, log_file, json.dumps(details), request_id),
+                "UPDATE requests SET status = 'FAILED', completed_at = CURRENT_TIMESTAMP, details = ? WHERE id = ?",
+                (json.dumps(details), request_id),
             )
 
     def claim_pending_requests(self, max_count: int) -> List[int]:
@@ -121,7 +111,10 @@ class RequestDatabase:
             if ids:
                 # Atomically update status for selected IDs using explicit IDs
                 placeholders = ", ".join(["?"] * len(ids))
-                cursor.execute(f"UPDATE requests SET status = 'ACTIVE' " f"WHERE id IN ({placeholders})", ids)
+                cursor.execute(
+                    f"UPDATE requests SET status = 'ACTIVE', started_at = CURRENT_TIMESTAMP WHERE id IN ({placeholders})",
+                    ids,
+                )
             return ids
 
     def claim_expired_requests(self, expiration_period: timedelta) -> List[int]:

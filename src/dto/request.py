@@ -16,8 +16,6 @@ class Request:
         created_at,
         started_at,
         completed_at,
-        result_file,
-        log_file,
         details,
         expired,
     ):
@@ -29,7 +27,5 @@ class Request:
         self.created_at: datetime = created_at
         self.started_at: datetime = started_at
         self.completed_at: datetime = completed_at
-        self.result_file: str = result_file
-        self.log_file: str = log_file
         self.details: Dict[str, Any] = json.loads(details) if details else {}
         self.expired: bool = expired

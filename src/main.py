@@ -10,10 +10,8 @@ from background_tasks import lifespan
 # Initialize system paths and folders
 pytesseract.tesseract_cmd = TESSERACT_PATH
 os.makedirs(TEMP_FOLDER, exist_ok=True)
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-# Create FastAPI app and DB service
-db = DatabaseService(DB_PATH)
+# Create FastAPI app
 app = FastAPI(lifespan=lifespan)
 app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
 app.include_router(api_router)

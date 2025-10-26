@@ -6,12 +6,13 @@ from fastapi.responses import PlainTextResponse, StreamingResponse, HTMLResponse
 
 from dto.models import ParseRequest, AddWebsiteRequest, DownloadResultRequest
 
-from .main import app, db
+from database import db
 from objects.types.custom_exceptions import CommandException, DBOverlapException, InvalidUrlException
 from settings.system_defaults import FINISHED_TASKS_LIFETIME
 import zipfile
 
 api_router = APIRouter()
+
 
 @api_router.get("/")
 def index():
@@ -58,7 +59,9 @@ def download_result(body: DownloadResultRequest):
         if request is None:
             raise CommandException(f"Request with rid {rid} not found")
         if request.expired:
-            raise CommandException(f"Request already expired, expiration time is {FINISHED_TASKS_LIFETIME} and task was finished at {request.completed_at}")
+            raise CommandException(
+                f"Request already expired, expiration time is {FINISHED_TASKS_LIFETIME} and task was finished at {request.completed_at}"
+            )
         # verify files
         files = []
         if request.result_file and os.path.isfile(request.result_file):
@@ -68,13 +71,14 @@ def download_result(body: DownloadResultRequest):
         if not files:
             return Exception(f"Files were not located on server")
         mem = io.BytesIO()
-        with zipfile.ZipFile(mem, mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
+        with zipfile.ZipFile(mem, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
             for label, path in files:
                 zf.write(path, arcname=os.path.basename(path))
         mem.seek(0)
-        return StreamingResponse(mem, media_type="application/zip", headers={'Content-Disposition': f'attachment; filename="Result.zip"'})
-    except (CommandException) as e:
+        return StreamingResponse(
+            mem, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="Result.zip"'}
+        )
+    except CommandException as e:
         return PlainTextResponse(content=e.message, status_code=400)
     except Exception as e:
         return PlainTextResponse(content=f"Unknown error: {e}", status_code=500)
-

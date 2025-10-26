@@ -45,34 +45,32 @@ class DatabaseService:
     def get_request(self, id: int) -> Optional[Request]:
         """Get request by id or None"""
         return self.request_dao.get_request(id)
-    
+
     def get_request_by_process_id(self, rid: UUID) -> Optional[Request]:
         """Get request by process_id or None"""
         return self.request_dao.get_request_by_request_id(rid)
 
     def create_request(self, url: str, chapters: int) -> int:
         """Create a new request and return its ID"""
-        if not validators.url(url): # type: ignore
+        if not validators.url(url):  # type: ignore
             raise InvalidUrlException(f"URL is invalid {url}")
         if get_domain(url) not in recognized_websites:
             raise CommandException(f"Unknown domain - {get_domain(url)}")
         if chapters <= 0:
             raise CommandException("Chapters must be greater than 0")
         if chapters > MAX_CHAPTERS_COUNT:
-            raise CommandException(f"You can at most request {MAX_CHAPTERS_COUNT} chapters but {chapters} were requested")
+            raise CommandException(
+                f"You can at most request {MAX_CHAPTERS_COUNT} chapters but {chapters} were requested"
+            )
         return self.request_dao.create_request(url, chapters)
 
-    def start_processing(self, request_id: int, process_id: str):
-        """Mark a request as in progress"""
-        self.request_dao.start_processing(request_id, process_id)
-
-    def complete_processing(self, request_id: int, details: Dict[str, Any], result_file: str, log_file: str):
+    def complete_processing(self, request_id: int, details: Dict[str, Any]):
         """Mark a request as completed with results"""
-        self.request_dao.complete_processing(request_id, details, result_file, log_file)
+        self.request_dao.complete_processing(request_id, details)
 
-    def fail_processing(self, request_id: int, details: Dict[str, Any], result_file: str, log_file: str):
+    def fail_processing(self, request_id: int, details: Dict[str, Any]):
         """Mark a request as failed with error message"""
-        self.request_dao.fail_processing(request_id, details, result_file, log_file)
+        self.request_dao.fail_processing(request_id, details)
 
     def get_pending_requests(self, max_count: int) -> List[int]:
         """Get oldest CREATED requests and mark them as ACTIVE"""
