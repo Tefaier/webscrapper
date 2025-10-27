@@ -76,8 +76,8 @@ def link(
     )
 
 
-recognized_websites: List[str] = []
-chrome_websites: List[str] = []
+recognized_websites: List[str] = ["gravitytales.com"]
+chrome_websites: List[str] = ["gravitytales.com"]
 chrome_undetected_websites: List[str] = []
 scroll_websites: Dict[str, Dict[str, Any]] = {}
 block_screen_websites: Dict[str, Callable[[ExtendedFactory], Any]] = {

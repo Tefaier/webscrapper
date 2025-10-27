@@ -44,6 +44,8 @@ class ContentParser:
         self.reload_handler: ReloadHandler = reload_handler
         self.driver_handler = driver_handler
         self.current_url: Optional[str] = None
+        self._last_request_url: Optional[str] = None
+        self._last_request_content: Optional[str] = None
 
     # ------------------------
     # Public API
@@ -57,25 +59,36 @@ class ContentParser:
     # Internal helpers
     # ------------------------
     def write_content(self):
-        self.orchestra.run(self.current_url, self.get_soup(self.current_url))
+        self.orchestra.run(self.current_url, self._current_dom())
 
     def _using_chrome(self) -> bool:
         return self.driver_handler is not None
 
     def get_soup(self, url: str) -> BeautifulSoup:
         if self._using_chrome():
-            html = self.driver_handler.get_driver().page_source
+            if self.driver_handler.get_driver().current_url == url:
+                return self._current_dom()
+            else:
+                self.driver_handler.get_driver().get(url)
+                html = self.driver_handler.get_driver().page_source
         else:
-            r = requests.get(url)
-            try:
-                html = r.content.decode("utf8")
-            except Exception:
-                html = r.text
+            if self._last_request_url == url:
+                return self._current_dom()
+            else:
+                r = requests.get(url)
+                try:
+                    html = r.content.decode("utf8")
+                except Exception:
+                    html = r.text
+                self._last_request_url = url
+                self._last_request_content = html
         return BeautifulSoup(html, "html.parser")
 
     def _current_dom(self) -> BeautifulSoup:
         if self._using_chrome():
             return BeautifulSoup(self.driver_handler.get_driver().page_source, "html.parser")
+        elif self._last_request_content:
+            return BeautifulSoup(self._last_request_content, "html.parser")
         raise RuntimeError("_current_dom called without chrome driver")
 
     def handle_block_and_scroll(self, soup: BeautifulSoup):

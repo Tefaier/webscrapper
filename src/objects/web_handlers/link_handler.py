@@ -6,6 +6,8 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup, PageElement
 from bs4.element import Tag
+from selenium.common import TimeoutException
+from selenium.webdriver.support.wait import WebDriverWait
 
 from objects.elements.elements_collector import ElementsCollector
 from objects.file_handlers.log_writer import LogWriter
@@ -92,6 +94,7 @@ class LinkHandler:
         return candidates[0]
 
     def _resolve_url_without_driver(self, current_url: str, link_el: PageElement) -> Optional[str]:
+        self.logger.debug("Retrieving url from link element")
         href = link_el.get("href") if hasattr(link_el, "get") else None
         if not href:
             raise TargetNotFoundException("Link element has no href to resolve")
@@ -100,6 +103,7 @@ class LinkHandler:
         return urljoin(current_url, href)
 
     def _click_and_resolve(self, current_url: str, link_el: PageElement) -> str:
+        self.logger.debug("Trying to click link element")
         if self.driver_handler is None:
             raise RuntimeError("Click requested but selenium WebDriver or utilities not available")
         previous_url = self.driver_handler.get_driver().current_url
@@ -109,24 +113,22 @@ class LinkHandler:
         web_el = self.driver_handler.get_driver().find_element(By.XPATH, xpath)
         self.driver_handler.get_driver().execute_script("arguments[0].click();", web_el)
 
-        self._loop_driver_url_change(previous_url)
-
-        if self.reload_after:
-            if self.driver_handler.get_driver().current_url == previous_url:
-                raise LinkException("Pressing located link didn't change url")
-            self.driver_handler.get_driver().get(self.driver_handler.get_driver().current_url)
-            return self.driver_handler.get_driver().current_url
+        url_changed = self._loop_driver_url_change(previous_url)
 
         if self.link_pure_click:
             # No validation requested
             return self.driver_handler.get_driver().current_url
 
-        if self.driver_handler.get_driver().current_url == previous_url:
+        if not url_changed:
             raise LinkException("Pressing located link didn't change url")
+
+        if self.reload_after:
+            self.driver_handler.get_driver().get(self.driver_handler.get_driver().current_url)
 
         return self.driver_handler.get_driver().current_url
 
     def _navigate_by_href(self, current_url: str, link_el: PageElement) -> str:
+        self.logger.debug("Trying to go by link href or execute")
         if self.driver_handler is None:
             raise RuntimeError("Driver is required for navigate-by-href mode")
         href = link_el.get("href") if hasattr(link_el, "get") else None
@@ -145,14 +147,10 @@ class LinkHandler:
         if self.driver_handler.get_driver().current_url == next_abs:
             # Same URL target - force refresh
             self.driver_handler.get_driver().refresh()
-            if not self._loop_driver_url_change(previous_url):
-                raise NextChapterNotReachedException(
-                    f"Implemented refresh strategy for the same href: {next_abs} but url didn't change"
-                )
         else:
             self.driver_handler.get_driver().get(next_abs)
 
-        if self.driver_handler.get_driver().current_url == previous_url:
+        if not self._loop_driver_url_change(previous_url):
             raise NextChapterNotReachedException("Navigation by href didn't change url")
         return self.driver_handler.get_driver().current_url
 
@@ -161,9 +159,13 @@ class LinkHandler:
     """
 
     def _loop_driver_url_change(self, previous_url: str) -> bool:
-        deadline = time.time() + float(self.wait_for_url_change_seconds or 0)
-        while time.time() < deadline:
-            time.sleep(0.1)
-            if self.driver_handler.get_driver().current_url != previous_url:
-                return True
-        return False
+        wait_start = time.time()
+        try:
+            WebDriverWait(self.driver_handler.get_driver(), self.wait_for_url_change_seconds, poll_frequency=0.3).until(
+                lambda driver: driver.current_url != previous_url
+            )
+            self.logger.debug(f"Url changed in {time.time() - wait_start}s")
+            return True
+        except TimeoutException:
+            self.logger.debug(f"Url change wait expired: {self.wait_for_url_change_seconds}s")
+            return False

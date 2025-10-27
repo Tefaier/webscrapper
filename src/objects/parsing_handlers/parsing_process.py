@@ -50,16 +50,17 @@ class ParsingProcess:
         }
         try:
             # Iterate requested number of times
-            for _ in range(max(0, iterations)):
+            for i in range(max(0, iterations)):
                 # Parse current URL and write content
                 self.parser.parse_content(current_url)
 
+                # no need for resolving link at last chapter
+                if i == iterations - 1:
+                    processed += 1
+                    break
+
                 # Build soup for link detection after content is parsed
-                soup: BeautifulSoup
-                if self.parser._using_chrome():
-                    soup = self.parser._current_dom()
-                else:
-                    soup = self.parser.get_soup(current_url)
+                soup = self.parser.get_soup(current_url)
 
                 # Try to follow the next link; if missing, we finish early successfully
                 try:

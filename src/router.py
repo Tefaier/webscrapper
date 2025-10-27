@@ -16,7 +16,7 @@ api_router = APIRouter()
 
 @api_router.get("/")
 def index():
-    return HTMLResponse(open("./frontend/index.html").read(), media_type="text/html")
+    return HTMLResponse(open("./frontend/index.html").read(), media_type="text/html", status_code=200)
 
 
 @api_router.post("/requests")
@@ -62,7 +62,7 @@ def download_result(query: DownloadResultRequest = Depends()):
             raise CommandException(
                 f"Request already expired, expiration time is {FINISHED_TASKS_LIFETIME} and task was finished at {request.completed_at}"
             )
-        
+
         directory = os.path.join(TEMP_FOLDER, str(request.request_id))
         mem = io.BytesIO()
         with zipfile.ZipFile(mem, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:

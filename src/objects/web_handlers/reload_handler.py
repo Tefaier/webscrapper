@@ -71,9 +71,8 @@ class ReloadHandler:
                 while time.time() < deadline:
                     time.sleep(self.page_load_check_interval_seconds)
                     try:
-                        if self.driver_handler:
-                            soup = parser.get_soup(parser.current_url)
-                            parser.handle_block_and_scroll(soup)
+                        soup = parser.get_soup(parser.current_url)
+                        parser.handle_block_and_scroll(soup)
                         parser.write_content()
                         return
                     except TargetNotFoundException:
@@ -88,8 +87,8 @@ class ReloadHandler:
     # ------------------------
     def _attempt_once(self, parser: ContentParser) -> bool:
         """Single attempt to open/process the page. Returns whether operation succeeded"""
+        soup = parser.get_soup(parser.current_url)
         if self.driver_handler:
-            soup = parser.get_soup(parser.current_url)
             parser.handle_block_and_scroll(soup)
             self._maybe_wait_before_process()
 
@@ -113,5 +112,4 @@ class ReloadHandler:
             self.driver_handler.get_driver().refresh()
         else:
             self.logger.debug("Creating new session")
-            url = self.driver_handler.get_driver().current_url
-            self.driver_handler.recreate_driver().get(url)
+            self.driver_handler.recreate_driver().get(parser.current_url)

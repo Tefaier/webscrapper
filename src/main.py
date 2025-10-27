@@ -1,4 +1,3 @@
-from objects.db.database_service import DatabaseService
 from settings.system_defaults import DB_PATH, TEMP_FOLDER, TESSERACT_PATH
 import os
 from pytesseract import pytesseract
@@ -13,5 +12,5 @@ os.makedirs(TEMP_FOLDER, exist_ok=True)
 
 # Create FastAPI app
 app = FastAPI(lifespan=lifespan)
-app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
 app.include_router(api_router)
