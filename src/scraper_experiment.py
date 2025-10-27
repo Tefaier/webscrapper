@@ -9,13 +9,13 @@ pytesseract.tesseract_cmd = TESSERACT_PATH
 os.makedirs(TEMP_FOLDER, exist_ok=True)
 
 StartingURL = "https://gravitytales.com/story/i-bring-the-game-into-reality/chapter-300-8/"
-process_id = str(uuid.uuid4())
+request_id = str(uuid.uuid4())
 
 
 def read_pages(start_page=StartingURL, parts_to_make=1):
     website = start_page.split("/")[2]
     try:
-        parsing_process = resolve_website(website, process_id)
+        parsing_process = resolve_website(website, request_id)
         parsing_process.parse_iterations(start_page, parts_to_make)
 
     except Exception as e:

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 import io
 import os
 
@@ -8,7 +8,7 @@ from dto.models import ParseRequest, AddWebsiteRequest, DownloadResultRequest
 
 from database import db
 from objects.types.custom_exceptions import CommandException, DBOverlapException, InvalidUrlException
-from settings.system_defaults import FINISHED_TASKS_LIFETIME
+from settings.system_defaults import FINISHED_TASKS_LIFETIME, TEMP_FOLDER
 import zipfile
 
 api_router = APIRouter()
@@ -23,12 +23,12 @@ def index():
 def create_request(body: ParseRequest):
     url_value = body.url
     chapters_value = body.chapters
-    if not url_value or not chapters_value:
-        return PlainTextResponse(content="URL and chapters are required", status_code=400)
     try:
+        if not url_value or not chapters_value:
+            raise CommandException("URL and chapters are required")
         id = db.create_request(url_value, chapters_value)
-        proc_id = db.get_request(id)
-        return PlainTextResponse(content=proc_id, status_code=200)
+        req_id = db.get_request(id)
+        return PlainTextResponse(content=req_id, status_code=200)
     except (CommandException, InvalidUrlException) as e:
         return PlainTextResponse(content=e.message, status_code=400)
     except Exception as e:
@@ -50,30 +50,27 @@ def add_website(body: AddWebsiteRequest):
 
 
 @api_router.get("/download")
-def download_result(body: DownloadResultRequest):
-    rid = body.req_id
+def download_result(query: DownloadResultRequest = Depends()):
+    rid = query.req_id
     if not rid:
         return PlainTextResponse(content="Request id is not present", status_code=400)
     try:
-        request = db.get_request_by_process_id(rid)
+        request = db.get_request_by_request_id(rid)
         if request is None:
             raise CommandException(f"Request with rid {rid} not found")
         if request.expired:
             raise CommandException(
                 f"Request already expired, expiration time is {FINISHED_TASKS_LIFETIME} and task was finished at {request.completed_at}"
             )
-        # verify files
-        files = []
-        if request.result_file and os.path.isfile(request.result_file):
-            files.append(("result", request.result_file))
-        if request.log_file and os.path.isfile(request.log_file):
-            files.append(("log", request.log_file))
-        if not files:
-            return Exception(f"Files were not located on server")
+        
+        directory = os.path.join(TEMP_FOLDER, str(request.request_id))
         mem = io.BytesIO()
         with zipfile.ZipFile(mem, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-            for label, path in files:
-                zf.write(path, arcname=os.path.basename(path))
+            for root, dirs, files in os.walk(directory):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, directory)
+                    zf.write(file_path, arcname=arcname)
         mem.seek(0)
         return StreamingResponse(
             mem, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="Result.zip"'}

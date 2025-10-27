@@ -46,8 +46,8 @@ class DatabaseService:
         """Get request by id or None"""
         return self.request_dao.get_request(id)
 
-    def get_request_by_process_id(self, rid: UUID) -> Optional[Request]:
-        """Get request by process_id or None"""
+    def get_request_by_request_id(self, rid: UUID) -> Optional[Request]:
+        """Get request by request_id or None"""
         return self.request_dao.get_request_by_request_id(rid)
 
     def create_request(self, url: str, chapters: int) -> int:

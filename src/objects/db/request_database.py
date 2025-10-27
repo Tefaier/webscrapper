@@ -23,7 +23,7 @@ class RequestDatabase:
                     url TEXT NOT NULL,
                     chapters INTEGER NOT NULL,
                     status TEXT NOT NULL DEFAULT 'CREATED',
-                    process_id TEXT,
+                    request_id TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     started_at TIMESTAMP,
                     completed_at TIMESTAMP,
@@ -51,7 +51,7 @@ class RequestDatabase:
                 url=request_dict["url"],
                 chapters=request_dict["chapters"],
                 status=request_dict["status"],
-                process_id=request_dict["process_id"],
+                request_id=request_dict["request_id"],
                 created_at=request_dict["created_at"],
                 started_at=request_dict["started_at"],
                 completed_at=request_dict["completed_at"],
@@ -63,7 +63,7 @@ class RequestDatabase:
         """Get request by process id"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM requests WHERE process_id = ?", (str(rid),))
+            cursor.execute("SELECT * FROM requests WHERE request_id = ?", (str(rid),))
             result = cursor.fetchone()
 
             if result is None:
@@ -76,7 +76,7 @@ class RequestDatabase:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO requests (url, chapters, process_id) VALUES (?, ?, ?)", (url, chapters, str(uuid.uuid4()))
+                "INSERT INTO requests (url, chapters, request_id) VALUES (?, ?, ?)", (url, chapters, str(uuid.uuid4()))
             )
             conn.commit()
             return cursor.lastrowid  # type: ignore

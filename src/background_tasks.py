@@ -53,7 +53,7 @@ def process_waiting_requests():
             try:
                 request = future.result()
                 if request:
-                    executor.submit(read_pages, request.process_id, request.url, request.chapters)
+                    executor.submit(read_pages, request.request_id, request.url, request.chapters)
             except Exception as e:
                 logger.error(f"Error getting request: {str(e)}")
 
@@ -87,7 +87,7 @@ def clean_single_request(id: int):
         if not request:
             return
 
-        folder_path = os.path.join(TEMP_FOLDER, str(request.process_id))
+        folder_path = os.path.join(TEMP_FOLDER, str(request.request_id))
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
 
@@ -97,16 +97,16 @@ def clean_single_request(id: int):
         logger.error(f"Error cleaning request {id}: {str(e)}")
 
 
-def read_pages(process_id, start_page, parts_to_make=1):
+def read_pages(request_id, start_page, parts_to_make=1):
     website = start_page.split("/")[2]
     try:
-        parsing_process = resolve_website(website, process_id)
+        parsing_process = resolve_website(website, request_id)
         result = parsing_process.parse_iterations(start_page, parts_to_make)
         if result["success"]:
-            db.complete_processing(process_id, result)
+            db.complete_processing(request_id, result)
         else:
-            db.fail_processing(process_id, result)
+            db.fail_processing(request_id, result)
 
     except Exception as e:
-        db.fail_processing(process_id, {})
+        db.fail_processing(request_id, {})
         logger.error(f"Error while calling running parser: {str(e)}")

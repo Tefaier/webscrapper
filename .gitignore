@@ -1,6 +1,6 @@
 /tests/
 /src/output/
-/old_versions/
+/old_versions
 /venv/
 /temp/output/
 .idea
@@ -9,3 +9,4 @@
 old_versions/backup
 /dependencies/*
 .env
+/**/__pycache__

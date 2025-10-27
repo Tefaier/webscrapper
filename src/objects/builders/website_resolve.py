@@ -11,8 +11,8 @@ from objects.web_handlers.scroll_strategy import BottomScroll
 from settings.builders_defaults import *
 
 
-def resolve_website(website: str, process_id: str) -> ParsingProcess:
-    factory = ExtendedFactory(process_id)
+def resolve_website(website: str, request_id: str) -> ParsingProcess:
+    factory = ExtendedFactory(request_id)
     if website in chrome_websites:
         factory.selenium(website in chrome_undetected_websites)
     if website in scroll_websites.keys():

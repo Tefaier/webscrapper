@@ -12,7 +12,7 @@ class Request:
         url,
         chapters,
         status,
-        process_id,
+        request_id,
         created_at,
         started_at,
         completed_at,
@@ -23,7 +23,7 @@ class Request:
         self.url: str = url
         self.chapters: int = chapters
         self.status: RequestStatus = RequestStatus[status]
-        self.process_id: str = process_id
+        self.request_id: str = request_id
         self.created_at: datetime = created_at
         self.started_at: datetime = started_at
         self.completed_at: datetime = completed_at

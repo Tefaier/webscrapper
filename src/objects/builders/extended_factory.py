@@ -48,10 +48,9 @@ class ExtendedFactory:
     - Output writer configuration
     """
 
-    def __init__(self, process_id: str):
-        os.makedirs(f"{OUTPUT_FILE_DIRECTORY}/{self.pid}", exist_ok=True)
+    def __init__(self, request_id: str):
         self.builder = BaseBuilder()
-        self.pid = process_id
+        self.rid = request_id
         # internal state for dynamic wiring and unique names
         self._counters: Dict[str, int] = {}
         self._driver_handler_name: Optional[str] = None
@@ -64,8 +63,9 @@ class ExtendedFactory:
 
     # -------- defaults --------
     def _create_defaults(self):
+        os.makedirs(f"{OUTPUT_FILE_DIRECTORY}/{self.rid}", exist_ok=True)
         self.builder.register(LOG_WRITER_NAME, LogWriter)
-        self.builder.add_config(LOG_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.pid}/log.txt"})
+        self.builder.add_config(LOG_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.rid}/log.txt"})
 
         # core endpoints
         self.builder.register(ORDERER_NAME, ElementsOrderer)
@@ -96,7 +96,7 @@ class ExtendedFactory:
         return self
 
     # -------- driver / selenium --------
-    def selenium(self, is_undetected: bool, window_w: int = None, window_h: int = None) -> Self:
+    def selenium(self, is_undetected: bool, window_w: Optional[int] = None, window_h: Optional[int] = None) -> Self:
         self._driver_handler_name = f"${DRIVER_HANDLER_NAME}"
         self.builder.register(DRIVER_HANDLER_NAME, DriverHandler)
         self.builder.add_config(
@@ -112,18 +112,18 @@ class ExtendedFactory:
         return self
 
     # -------- output --------
-    def output(self, file_type: str, image_width: float = None) -> Self:
+    def output(self, file_type: str, image_width: Optional[float] = None) -> Self:
         if file_type == "txt":
             self.builder.register(OUTPUT_WRITER_NAME, TxtWriter)
-            self.builder.add_config(OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.pid}/result.txt"})
+            self.builder.add_config(OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.rid}/result.txt"})
         elif file_type == "html":
             self.builder.register(OUTPUT_WRITER_NAME, HtmlWriter)
-            self.builder.add_config(OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.pid}/result.html"})
+            self.builder.add_config(OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.rid}/result.html"})
         elif file_type == "docx":
             self.builder.register(OUTPUT_WRITER_NAME, DocxWriter)
             self.builder.add_config(
                 OUTPUT_WRITER_NAME,
-                _clear_nones({"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.pid}/result.docx", "image_width": image_width}),
+                _clear_nones({"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.rid}/result.docx", "image_width": image_width}),
             )
         else:
             raise UnsupportedArgumentsException(f"Unsupported file type: {file_type}")
@@ -141,7 +141,7 @@ class ExtendedFactory:
         return self
 
     def collector(
-        self, name: str, field_type: FieldTypes, finders: List[str], post_processings: List[str] = None
+        self, name: str, field_type: FieldTypes, finders: List[str], post_processings: Optional[List[str]] = None
     ) -> Self:
         self.builder.register(name, ElementsCollector)
         self.builder.add_config(
@@ -155,7 +155,7 @@ class ExtendedFactory:
         )
         return self
 
-    def link_collector(self, finders: List[str], post_processings: List[str] = None) -> Self:
+    def link_collector(self, finders: List[str], post_processings: Optional[List[str]] = None) -> Self:
         self._link_collector_called = True
         return self.collector(LINK_COLLECTOR_NAME, FieldTypes.Link, finders, post_processings)
 
@@ -163,7 +163,7 @@ class ExtendedFactory:
         self.builder.add_config(ORDERER_NAME, {"log_writer": f"${LOG_WRITER_NAME}", "strategy": strategy})
         return self
 
-    def orchestra(self, collectors: List[str], min_expected: int = None, min_expected_text: int = None) -> Self:
+    def orchestra(self, collectors: List[str], min_expected: Optional[int] = None, min_expected_text: Optional[int] = None) -> Self:
         self._orchestra_called = True
         self.builder.add_config(
             ORCHESTRA_NAME,
@@ -206,10 +206,10 @@ class ExtendedFactory:
 
     def link_handler(
         self,
-        press_link: bool = None,
-        reload_after: bool = None,
-        link_pure_click: bool = None,
-        wait_for_url_change_seconds: float = None,
+        press_link: Optional[bool] = None,
+        reload_after: Optional[bool] = None,
+        link_pure_click: Optional[bool] = None,
+        wait_for_url_change_seconds: Optional[float] = None,
     ) -> Self:
         self._link_handler_called = True
         # override default link handler wiring
