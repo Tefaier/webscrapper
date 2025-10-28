@@ -2,6 +2,12 @@ function showMsg(el, text, ok) {
   el.hidden = false;
   el.className = 'msg ' + (ok ? 'ok' : 'err');
   el.textContent = text;
+  try {
+    json = JSON.parse(str);
+    el.textContent = json['detail'][0]['msg'];
+  } catch (e) {
+    el.textContent = text;
+  }
 }
 
 async function postJson(url, data) {
@@ -36,8 +42,9 @@ window.addEventListener('DOMContentLoaded', () => {
     crMsg.hidden = true;
     const url = document.getElementById('cr-url').value.trim();
     const chapters = Number(document.getElementById('cr-chapters').value);
+    const file_extension = document.getElementById('cr-ext').value;
     try {
-      const req_id = await postJson('/requests', { url, chapters });
+      const req_id = await postJson('/requests', { url, chapters, file_extension });
       showMsg(crMsg, 'Request created. Request ID: ' + req_id + '\nDo not lose it since it will be later required to download result.', true);
     } catch (err) {
       showMsg(crMsg, err.message, false);

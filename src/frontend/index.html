@@ -1,11 +1,14 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WebScrapper Control</title>
   <link rel="stylesheet" href="/static/index.css" />
+  <link rel="icon" type="image/x-icon" href="/static/webscrapper_v2.ico">
 </head>
+
 <body>
   <h1>WebScrapper Control Panel</h1>
 
@@ -16,6 +19,17 @@
       <input id="cr-url" type="text" name="url" required placeholder="https://example.com/" />
       <label for="cr-chapters">Chapters</label>
       <input id="cr-chapters" type="number" name="chapters" min="1" value="1" required />
+      <label for="cr-ext">File extension</label>
+      <select id="cr-ext" name="file_extension" required>
+        {% for ext in file_extensions %}
+        <option value="{{ ext.name }}">
+          {{ ext.name }}
+          {% if ext.text_support %} [Text]{% endif %}
+          {% if ext.image_support %} [Images]{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+
       <div class="mt"><button type="submit">Create</button></div>
       <div id="cr-msg" class="msg" hidden></div>
     </form>
@@ -43,4 +57,5 @@
 
   <script src="/static/index.js" defer></script>
 </body>
+
 </html>

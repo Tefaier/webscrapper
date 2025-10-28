@@ -8,6 +8,7 @@ from objects.file_handlers.output_writers import TxtWriter, HtmlWriter, DocxWrit
 from objects.parsing_handlers.content_parser import ContentParser
 from objects.parsing_handlers.parsing_process import ParsingProcess
 from objects.types.custom_exceptions import UnsupportedArgumentsException
+from objects.types.file_extensions import FileExtensions
 from objects.web_handlers.driver_handler import DriverHandler
 from objects.web_handlers.link_handler import LinkHandler
 from objects.web_handlers.scroll_strategy import ScrollStrategy, NoScroll
@@ -83,7 +84,7 @@ class ExtendedFactory:
         self.orderer(OrderStrategy.CONCAT)
         self.scroll(NoScroll)
         self.main_block_handler(NoHandling)
-        self.output("txt")
+        self.output(FileExtensions.TXT)
         self.default_post_processing()
 
     # -------- basic API passthroughs --------
@@ -112,14 +113,14 @@ class ExtendedFactory:
         return self
 
     # -------- output --------
-    def output(self, file_type: str, image_width: Optional[float] = None) -> Self:
-        if file_type == "txt":
+    def output(self, file_type: FileExtensions, image_width: Optional[float] = None) -> Self:
+        if file_type == FileExtensions.TXT:
             self.builder.register(OUTPUT_WRITER_NAME, TxtWriter)
             self.builder.add_config(OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.rid}/result.txt"})
-        elif file_type == "html":
+        elif file_type == FileExtensions.HTML:
             self.builder.register(OUTPUT_WRITER_NAME, HtmlWriter)
             self.builder.add_config(OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.rid}/result.html"})
-        elif file_type == "docx":
+        elif file_type == FileExtensions.DOCX:
             self.builder.register(OUTPUT_WRITER_NAME, DocxWriter)
             self.builder.add_config(
                 OUTPUT_WRITER_NAME,

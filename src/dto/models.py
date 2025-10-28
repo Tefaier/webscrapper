@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class ParseRequest(BaseModel):
     url: str
     chapters: int
+    file_extension: str
 
 class AddWebsiteRequest(BaseModel):
     url: str

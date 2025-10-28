@@ -2,7 +2,8 @@
 /src/output/
 /old_versions
 /venv/
-/temp/output/
+/temp
+/db
 .idea
 .vscode
 .aider*

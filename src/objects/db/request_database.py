@@ -23,6 +23,7 @@ class RequestDatabase:
                     url TEXT NOT NULL,
                     chapters INTEGER NOT NULL,
                     status TEXT NOT NULL DEFAULT 'CREATED',
+                    file_extension TEXT NOT NULL,
                     request_id TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     started_at TIMESTAMP,
@@ -51,6 +52,7 @@ class RequestDatabase:
                 url=request_dict["url"],
                 chapters=request_dict["chapters"],
                 status=request_dict["status"],
+                file_extension=request_dict["file_extension"],
                 request_id=request_dict["request_id"],
                 created_at=request_dict["created_at"],
                 started_at=request_dict["started_at"],
@@ -71,30 +73,30 @@ class RequestDatabase:
 
         return self.get_request(result[0])
 
-    def create_request(self, url: str, chapters: int) -> int:
+    def create_request(self, url: str, chapters: int, file_extension: str) -> int:
         """Create a new request and return its ID"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO requests (url, chapters, request_id) VALUES (?, ?, ?)", (url, chapters, str(uuid.uuid4()))
+                "INSERT INTO requests (url, chapters, request_id, file_extension) VALUES (?, ?, ?, ?)", (url, chapters, str(uuid.uuid4()), file_extension)
             )
             conn.commit()
             return cursor.lastrowid  # type: ignore
 
-    def complete_processing(self, request_id: int, details: Dict[str, Any]):
+    def complete_processing(self, id: int, details: Dict[str, Any]):
         """Mark a request as completed with results"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "UPDATE requests SET status = 'SUCCESS', completed_at = CURRENT_TIMESTAMP, details = ? WHERE id = ?",
-                (json.dumps(details), request_id),
+                (json.dumps(details), id),
             )
 
-    def fail_processing(self, request_id: int, details: Dict[str, Any]):
+    def fail_processing(self, id: int, details: Dict[str, Any]):
         """Mark a request as failed"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "UPDATE requests SET status = 'FAILED', completed_at = CURRENT_TIMESTAMP, details = ? WHERE id = ?",
-                (json.dumps(details), request_id),
+                (json.dumps(details), id),
             )
 
     def claim_pending_requests(self, max_count: int) -> List[int]:

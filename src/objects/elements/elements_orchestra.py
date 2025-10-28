@@ -14,7 +14,8 @@ from objects.file_handlers.log_writer import LogWriter
 from objects.file_handlers.output_writers import OutputWriter
 from objects.types.custom_exceptions import TargetNotFoundException
 from objects.types.field_types import FieldTypes
-from settings.elements_defaults import LINK_INFO_PART, MIN_EXPECTED_PARAGRAPHS, MIN_EXPECTED_CHARS
+from settings.elements_defaults import LINK_INFO_PART, MIN_EXPECTED_PARAGRAPHS, MIN_EXPECTED_CHARS, \
+    IMAGE_GET_TIMEOUT_SECONDS
 
 
 class ElementsOrchestra:
@@ -77,12 +78,12 @@ class ElementsOrchestra:
                         continue
                     if validators.url(info):
                         self.logger.debug(f"Started getting image with url: {info}")
-                        self.output.write_image(requests.get(info).content)
+                        self.output.write_image(requests.get(info, timeout=IMAGE_GET_TIMEOUT_SECONDS).content)
                         return
                     info = urljoin(url, info)
                     if validators.url(info):
                         self.logger.debug(f"Started getting image with url: {info}")
-                        self.output.write_image(requests.get(info).content)
+                        self.output.write_image(requests.get(info, timeout=IMAGE_GET_TIMEOUT_SECONDS).content)
                         return
                 self.logger.warning(f"Failed to get information about image url: {element.__repr__()}")
             except Exception as e:

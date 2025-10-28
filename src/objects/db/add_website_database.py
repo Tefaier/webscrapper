@@ -1,4 +1,5 @@
 import sqlite3
+from sqlite3 import IntegrityError
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 import json
@@ -47,8 +48,11 @@ class AddWebsiteDatabase:
         """Insert a new website URL and return the generated ID"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("INSERT INTO add_website (url) VALUES (?)", (url,))
-            conn.commit()
-            return cursor.lastrowid
+            try:
+                conn.commit()
+                return cursor.lastrowid
+            except IntegrityError:
+                return None
 
     def get_count(self) -> int:
         """Get the total count of website entries"""

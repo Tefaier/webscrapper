@@ -2,8 +2,9 @@ body { font-family: Arial, sans-serif; margin: 2rem; }
 form { margin-bottom: 2rem; padding: 1rem; border: 1px solid #ddd; border-radius: 6px; }
 label { display:block; margin: .25rem 0; }
 input[type=text], input[type=number] { width: 320px; padding: .5rem; }
+select { width: 320px; padding: .5rem; box-sizing: content-box; border-radius: 4px; margin: 1.6px; }
 button { padding: .5rem 1rem; cursor: pointer; }
-.msg { padding: .5rem; margin: .5rem 0; border-radius: 4px; }
+.msg { white-space: pre-line; padding: .5rem; margin: .5rem 0; border-radius: 4px; }
 .ok { background: #e6ffed; border: 1px solid #b7eb8f; }
 .err { background: #fff1f0; border: 1px solid #ffa39e; }
 code { background: #f6f8fa; padding: .1rem .25rem; }

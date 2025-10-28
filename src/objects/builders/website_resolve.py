@@ -1,5 +1,6 @@
 from typing import Dict, Callable, Any, List, Optional
 
+from dto.request import Request
 from objects.builders.extended_factory import ExtendedFactory
 from objects.elements.elements_finders import ByAttributesFinder
 from objects.elements.elements_post_processings import ExactElementTaker
@@ -11,8 +12,9 @@ from objects.web_handlers.scroll_strategy import BottomScroll
 from settings.builders_defaults import *
 
 
-def resolve_website(website: str, request_id: str) -> ParsingProcess:
-    factory = ExtendedFactory(request_id)
+def resolve_website(website: str, request: Request) -> ParsingProcess:
+    factory = ExtendedFactory(request.request_id)
+    factory.output(request.file_extension)
     if website in chrome_websites:
         factory.selenium(website in chrome_undetected_websites)
     if website in scroll_websites.keys():

@@ -12,6 +12,7 @@ from objects.web_handlers.block_screen_handler import BlockScreenHandler, NoHand
 from objects.web_handlers.driver_handler import DriverHandler
 from objects.web_handlers.scroll_strategy import ScrollStrategy, NoScroll
 from objects.web_handlers.reload_handler import ReloadHandler
+from settings.parsing_handlers_defaults import REQUEST_GET_TIMEOUT_SECONDS
 
 
 class ContentParser:
@@ -75,11 +76,14 @@ class ContentParser:
             if self._last_request_url == url:
                 return self._current_dom()
             else:
-                r = requests.get(url)
                 try:
-                    html = r.content.decode("utf8")
+                    r = requests.get(url, timeout=REQUEST_GET_TIMEOUT_SECONDS)
+                    try:
+                        html = r.content.decode("utf8")
+                    except Exception:
+                        html = r.text
                 except Exception:
-                    html = r.text
+                    html = ""
                 self._last_request_url = url
                 self._last_request_content = html
         return BeautifulSoup(html, "html.parser")

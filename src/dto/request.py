@@ -2,6 +2,7 @@ from datetime import datetime
 import json
 from typing import Dict, Any
 
+from objects.types.file_extensions import FileExtensions
 from objects.types.request_status import RequestStatus
 
 
@@ -12,6 +13,7 @@ class Request:
         url,
         chapters,
         status,
+        file_extension,
         request_id,
         created_at,
         started_at,
@@ -23,6 +25,7 @@ class Request:
         self.url: str = url
         self.chapters: int = chapters
         self.status: RequestStatus = RequestStatus[status]
+        self.file_extension: FileExtensions = FileExtensions[file_extension]
         self.request_id: str = request_id
         self.created_at: datetime = created_at
         self.started_at: datetime = started_at
