@@ -1,4 +1,3 @@
-import os.path
 from typing import Dict
 
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -18,7 +17,7 @@ class DriverHandler:
         window_height: int = WINDOW_HEIGHT,
     ):
         self.chrome_directory = chrome_directory
-        self.chrome_profile = chrome_profile
+        self.chrome_profile = chrome_profile  # is not supported - Default will be forcefully used
         self.undetected = undetected_method
         self.window_width = min(WINDOW_W_MAX, max(WINDOW_W_MIN, window_width))
         self.window_height = min(WINDOW_H_MAX, max(WINDOW_H_MIN, window_height))
@@ -46,12 +45,8 @@ class DriverHandler:
         return Driver(uc=True, headless=True, **self._build_default_settings())
 
     def _usual(self) -> WebDriver:
-        if self.chrome_directory and self.chrome_profile:
-            return Driver(
-                headless=True,
-                user_data_dir=os.path.join(self.chrome_directory, self.chrome_profile),
-                **self._build_default_settings()
-            )
+        if self.chrome_directory:
+            return Driver(headless=False, user_data_dir=self.chrome_directory, **self._build_default_settings())
         else:
             return Driver(uc=False, headless=True, **self._build_default_settings())
 

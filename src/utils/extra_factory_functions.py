@@ -81,7 +81,7 @@ def simple_link(
             search_types=holder_type,
             search_limits=holder_limit or None,
         )
-    if not link_limit:
+    if not link_type:
         raise RuntimeError("Incorrect function use")
     name = f"{FINDER_NAME}_link_{len(finders)}"
     finders.append(name)
@@ -89,7 +89,7 @@ def simple_link(
         name,
         ByAttributesFinder,
         search_types=link_type,
-        search_limits=link_limit or None,
+        search_limits=link_limit,
     )
     if link_exact:
         name = f"{POST_PROCESSING_NAME}_link_{len(posts)}"
