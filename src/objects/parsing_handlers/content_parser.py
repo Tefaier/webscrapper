@@ -119,6 +119,6 @@ class ContentParser:
         try:
             if self.driver_handler:
                 self.driver_handler.get_driver().delete_all_cookies()
-                self.driver_handler.get_driver().close()
+                self.driver_handler.get_driver().quit()
         except Exception as e:
             self.logger.error("Failed while clearing driver", exc_info=e)

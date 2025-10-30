@@ -1,22 +1,21 @@
-import undetected_chromedriver as uc
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+import os.path
+from typing import Dict
+
 from selenium.webdriver.chrome.webdriver import WebDriver
+from seleniumbase import Driver
 
 from settings.system_defaults import *
 from settings.web_handlers_defaults import *
-from utils.web_functions import fill_standard_chrome_options
 
 
 class DriverHandler:
     def __init__(
-            self,
-            chrome_directory: str = CHROME_DIRECTORY,
-            chrome_profile: str = CHROME_PROFILE,
-            undetected_method: bool = UNDETECTED_METHOD,
-            window_width: int = WINDOW_WIDTH,
-            window_height: int = WINDOW_HEIGHT
+        self,
+        chrome_directory: str = CHROME_DIRECTORY,
+        chrome_profile: str = CHROME_PROFILE,
+        undetected_method: bool = UNDETECTED_METHOD,
+        window_width: int = WINDOW_WIDTH,
+        window_height: int = WINDOW_HEIGHT,
     ):
         self.chrome_directory = chrome_directory
         self.chrome_profile = chrome_profile
@@ -29,7 +28,7 @@ class DriverHandler:
         return self.driver
 
     def recreate_driver(self) -> WebDriver:
-        self.driver.close()
+        self.driver.quit()
         self.driver = self._create_driver()
         return self.driver
 
@@ -44,12 +43,25 @@ class DriverHandler:
         return driver
 
     def _undetected(self) -> WebDriver:
-        options = uc.ChromeOptions()
-        fill_standard_chrome_options(options, self.chrome_directory, self.chrome_profile)
-        return uc.Chrome(driver_executable_path=CHROME_DRIVER_PATH, options=options)
+        return Driver(uc=True, headless=True, **self._build_default_settings())
 
     def _usual(self) -> WebDriver:
-        service = Service(CHROME_DRIVER_PATH)
-        options = Options()
-        fill_standard_chrome_options(options, self.chrome_directory, self.chrome_profile)
-        return webdriver.Chrome(service=service, options=options)
+        if self.chrome_directory and self.chrome_profile:
+            return Driver(
+                headless=True,
+                user_data_dir=os.path.join(self.chrome_directory, self.chrome_profile),
+                **self._build_default_settings()
+            )
+        else:
+            return Driver(uc=False, headless=True, **self._build_default_settings())
+
+    def _build_default_settings(self) -> Dict[str, str]:
+        return {
+            "browser": "chrome",
+            "use_auto_ext": False,
+            "disable_features": "LensOverlay,TranslateUI,Translate,OptimizationGuideModelDownloading,OptimizationHintsFetching,OptimizationTargetPrediction,OptimizationHints",
+            "page_load_strategy": "eager",
+            "locale_code": "en",
+            "d_width": self.window_width,
+            "d_height": self.window_height,
+        }

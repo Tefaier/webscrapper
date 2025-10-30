@@ -3,13 +3,14 @@ from typing import Dict, Callable, Any, List, Optional
 from dto.request import Request
 from objects.builders.extended_factory import ExtendedFactory
 from objects.elements.elements_finders import ByAttributesFinder
-from objects.elements.elements_post_processings import ExactElementTaker
+from objects.elements.elements_post_processings import ExactElementTaker, SplitTagContentByInnerTags
 from objects.parsing_handlers.parsing_process import ParsingProcess
 from objects.types.custom_exceptions import CommandException
 from objects.types.field_types import FieldTypes
 from objects.web_handlers.block_screen_handler import ButtonClickHandler
 from objects.web_handlers.scroll_strategy import BottomScroll
 from settings.builders_defaults import *
+from utils.extra_factory_functions import *
 
 
 def resolve_website(website: str, request: Request) -> ParsingProcess:
@@ -30,67 +31,52 @@ def resolve_website(website: str, request: Request) -> ParsingProcess:
     return factory.finish()
 
 
-# local util methods
-def title(factory: ExtendedFactory, types: Optional[List[str]] = None) -> ExtendedFactory:
-    return factory.finder(f"{FINDER_NAME}_title_0", ByAttributesFinder, search_types=types or ["title"]).collector(
-        f"{COLLECTOR_NAME}_title", FieldTypes.Text, [f"{FINDER_NAME}_title_0"]
-    )
-
-
-def text(
-    factory: ExtendedFactory, clazz: str, holder_type: Optional[List[str]] = None, types: Optional[List[str]] = None
-) -> ExtendedFactory:
-    return (
-        factory.finder(
-            f"{FINDER_NAME}_text_0",
-            ByAttributesFinder,
-            search_types=holder_type or ["div"],
-            search_limits={"class": clazz},
-        )
-        .finder(f"{FINDER_NAME}_text_1", ByAttributesFinder, search_types=types or ["p"])
-        .collector(
-            f"{COLLECTOR_NAME}_text",
-            FieldTypes.Text,
-            [f"{FINDER_NAME}_text_0", f"{FINDER_NAME}_text_1"],
-            DEFAULT_POST_PROCESSINGS,
-        )
-    )
-
-
-def orchestra(factory: ExtendedFactory) -> ExtendedFactory:
-    return factory.orchestra([f"{COLLECTOR_NAME}_title", f"{COLLECTOR_NAME}_text"])
-
-
-def link(
-    factory: ExtendedFactory, clazz: str, holder_type: Optional[List[str]] = None, types: Optional[List[str]] = None
-) -> ExtendedFactory:
-    return (
-        factory.finder(
-            f"{FINDER_NAME}_link_0",
-            ByAttributesFinder,
-            search_types=holder_type or ["div"],
-            search_limits={"class": clazz},
-        )
-        .finder(
-            f"{FINDER_NAME}_link_1", ByAttributesFinder, search_types=types or ["a"], search_limits={"class": "next"}
-        )
-        .link_collector([f"{FINDER_NAME}_link_0", f"{FINDER_NAME}_link_1"])
-    )
-
-
-recognized_websites: List[str] = ["gravitytales.com"]
-chrome_websites: List[str] = ["gravitytales.com"]
+recognized_websites: List[str] = []
+chrome_websites: List[str] = []
 chrome_undetected_websites: List[str] = []
 scroll_websites: Dict[str, Dict[str, Any]] = {}
-block_screen_websites: Dict[str, Callable[[ExtendedFactory], Any]] = {
-    "tl.rulate.ru": lambda factory: factory.finder(
-        f"{FINDER_NAME}_block_0", ByAttributesFinder, search_types=["button"], search_limits={"name": "ok"}
-    ).main_block_handler(ButtonClickHandler, button_finder=f"${FINDER_NAME}_block_0")
-}
+block_screen_websites: Dict[str, Callable[[ExtendedFactory], Any]] = {}
 reload_websites: Dict[str, Dict[str, Any]] = {}
 content_websites: Dict[str, Callable[[ExtendedFactory], Any]] = {}
 link_websites: Dict[str, Callable[[ExtendedFactory], Any]] = {}
 
+
+def write_new_settings():
+    # "tl.rulate.ru"
+    website = "tl.rulate.ru"
+    recognized_websites.append(website)
+    block_screen_websites[website] = lambda factory: (
+        ExtendedFactory(factory).finder(
+            f"{FINDER_NAME}_block_0", ByAttributesFinder, search_types=["button"], search_limits={"name": "ok"}
+        )
+    ).main_block_handler(ButtonClickHandler, button_finder=f"${FINDER_NAME}_block_0")
+
+    # "gravitytales.com"
+    website = "gravitytales.com"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"]),
+        simple_text(factory, ["section"], {"id": "entry-content"}),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: simple_link(
+        factory, ["div"], {"class": "chapter__actions-right"}, ["a"], {}, -1
+    )
+
+    # "www.novelhall.com"
+    website = "www.novelhall.com"
+    recognized_websites.append(website)
+    chrome_websites.append(website)
+    chrome_undetected_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"]),
+        split_text(factory, ["div"], {"class": "entry-content"}, ["br"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: simple_link(factory, link_type=["a"], link_limit={"rel": "next"})
+
+
+write_new_settings()
 
 # FROM HERE BACKWARD COMPATIBILITY LIMITED SUPPORT
 
@@ -158,7 +144,6 @@ active_process_dicts = {
     "www.goodnovel.com": {},
     "tapas.io": {"chrome": True, "wait": True},
     "silver-prince.com": {"chrome": True, "wait": True},
-    "www.novelhall.com": {"chrome": True, "chrome_undetected": False},
     "ranobes.top": {"chrome": True, "chrome_undetected": True},
     "www.fanmtl.com": {"chrome": True},
     "author.today": {"chrome": True, "wait": True},
@@ -172,7 +157,6 @@ active_process_dicts = {
     "huitranslation.com": {},
     "ididmybesttranslations.wordpress.com": {},
     "kktranslates.home.blog": {"chrome": True, "wait": True},
-    "gravitytales.com": {},
 }
 
 active_parser_dicts = {
@@ -688,13 +672,6 @@ active_parser_dicts = {
         "link_p": 2,
         "link_pure_click": True,
     },
-    "www.novelhall.com": {
-        "text_l": {"id": "htmlContent"},
-        "tags_used": ["br"],
-        "title_h": "h1",
-        "link_h": "a",
-        "link_l": {"rel": "next"},
-    },
     "ranobes.top": {
         "text_h": "p",
         "text_l": {"id": "arrticle"},
@@ -797,16 +774,6 @@ active_parser_dicts = {
         "link_h": "a",
         "link_container": "p",
         "link_l": {"class": "has-text-align-center"},
-        "link_p": -1,
-    },
-    "gravitytales.com": {
-        "text_h": "p",
-        "text_l": {"id": "chapter-content"},
-        "text_container": "section",
-        "title_h": "h1",
-        "link_h": "a",
-        "link_container": "div",
-        "link_l": {"class": "chapter__actions-right"},
         "link_p": -1,
     },
 }

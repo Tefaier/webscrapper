@@ -116,8 +116,10 @@ def read_pages(request: Request):
         parsing_process = resolve_website(get_domain(request.url), request)
         result = parsing_process.parse_iterations(request.url, request.chapters)
         if result["success"]:
+            logger.debug(f"Finished request with request id {request.request_id} - SUCCESS")
             db.complete_processing(request.id, result)
         else:
+            logger.debug(f"Finished request with request id {request.request_id} - FAILED")
             db.fail_processing(request.id, result)
 
     except Exception as e:

@@ -182,6 +182,7 @@ class SplitTagContentByInnerTags(ElementsPostProcessing):
         self.split_names = {name.lower() for name in split_tag_names}
 
     def process(self, soup: BeautifulSoup, elements: List[PageElement]) -> List[PageElement]:
+        before = len(elements)
         result: List[PageElement] = []
         for el in elements:
             if isinstance(el, Tag):
@@ -192,6 +193,7 @@ class SplitTagContentByInnerTags(ElementsPostProcessing):
                     result.extend(NavigableString(p) for p in parts)
             else:
                 result.append(el)
+        self.logger.debug(f"Split result: {before}->{len(result)}")
         return result
 
     def _split_text_by_tags(self, element: Tag):
