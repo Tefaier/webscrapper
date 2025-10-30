@@ -7,7 +7,13 @@ from fastapi import FastAPI
 from dto.request import Request
 from objects.builders.website_resolve import resolve_website
 from objects.file_handlers.log_writer import LogWriter
-from settings.system_defaults import APPLICATION_LOGS_PATH, DB_PATH, TEMP_FOLDER, MAX_ACTIVE_PROCESSES
+from settings.system_defaults import (
+    APPLICATION_LOGS_PATH,
+    DB_PATH,
+    TEMP_FOLDER,
+    MAX_ACTIVE_PROCESSES,
+    TASKS_EXECUTION_TIMEOUT_SECONDS,
+)
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from database import db
@@ -68,7 +74,7 @@ def process_waiting_requests():
             except Exception as e:
                 logger.error(f"Error getting request: {str(e)}")
 
-        wait(task_futures)
+        wait(task_futures, timeout=TASKS_EXECUTION_TIMEOUT_SECONDS)
 
     except Exception as e:
         logger.error(f"Error processing requests: {str(e)}")
@@ -121,7 +127,6 @@ def read_pages(request: Request):
         else:
             logger.debug(f"Finished request with request id {request.request_id} - FAILED")
             db.fail_processing(request.id, result)
-
     except Exception as e:
-        db.fail_processing(request.id, {})
+        db.fail_processing(request.id, {"success": False, "error_type": type(e).__name__, "error_message": str(e)})
         logger.error(f"Error while calling running parser: {str(e)}")
