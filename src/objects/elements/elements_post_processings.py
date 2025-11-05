@@ -161,7 +161,7 @@ class ExcludeByCollectorFilter(ElementsPostProcessing):
         self.finder = finder
 
     def process(self, soup: BeautifulSoup, elements: List[PageElement]) -> List[PageElement]:
-        to_exclude = self.finder.find(soup, elements)
+        to_exclude = self.finder.find(soup, list(set([elem.parent for elem in elements])))
         if not to_exclude:
             return elements
         exclude_ids = {id(e) for e in to_exclude}

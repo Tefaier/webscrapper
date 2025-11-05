@@ -1,3 +1,36 @@
+function addToLocalStorageArray(key, newElement) {
+    const existingArray = JSON.parse(localStorage.getItem(key)) || [];
+    existingArray.push(newElement);
+    localStorage.setItem(key, JSON.stringify(existingArray));
+    return existingArray;
+}
+
+function removeFromLocalStorageArray(key, toRemove) {
+    const existingArray = JSON.parse(localStorage.getItem(key)) || [];
+    localStorage.setItem(key, JSON.stringify(existingArray.filter(elem => elem != toRemove)));
+}
+
+function getLocalStorageArray(key) {
+    return JSON.parse(localStorage.getItem(key)) || [];
+}
+
+function showPendingRequests() {
+		const list = document.getElementById('pending-requests');
+		list.innerHTML = '';
+		const elements = getLocalStorageArray("pending-requests");
+		if (elements.length > 0) {
+				elements.forEach(request => {
+						const li = document.createElement('li');
+						li.textContent = request;
+						list.appendChild(li);
+				});
+		} else {
+				const li = document.createElement('li');
+				li.textContent = "No pending requests";
+				list.appendChild(li);
+		}
+}
+
 function showMsg(el, text, ok) {
   el.hidden = false;
   el.className = 'msg ' + (ok ? 'ok' : 'err');
@@ -33,6 +66,7 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+showPendingRequests();
 window.addEventListener('DOMContentLoaded', () => {
   // Create Request form
   const crForm = document.getElementById('create-request-form');
@@ -45,6 +79,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const file_extension = document.getElementById('cr-ext').value;
     try {
       const req_id = await postJson('/requests', { url, chapters, file_extension });
+      addToLocalStorageArray("pending-requests", req_id);
+      showPendingRequests();
       showMsg(crMsg, 'Request created. Request ID: ' + req_id + '\nDo not lose it since it will be later required to download result.', true);
     } catch (err) {
       showMsg(crMsg, err.message, false);
@@ -78,8 +114,12 @@ window.addEventListener('DOMContentLoaded', () => {
         method: 'GET'
       });
       const ct = res.headers.get('content-type') || '';
+      const text = await res.text();
+      if (text != "Request is not completed yet") {
+		      removeFromLocalStorageArray("pending-requests", req_id);
+		      showPendingRequests();
+      }
       if (!res.ok) {
-        const text = await res.text();
         throw new Error(text || ('HTTP ' + res.status));
       }
       if (ct.includes('application/zip')) {

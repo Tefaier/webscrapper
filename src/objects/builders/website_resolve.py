@@ -2,8 +2,12 @@ from typing import Dict, Callable, Any, List, Optional
 
 from dto.request import Request
 from objects.builders.extended_factory import ExtendedFactory
-from objects.elements.elements_finders import ByAttributesFinder
-from objects.elements.elements_post_processings import ExactElementTaker, SplitTagContentByInnerTags
+from objects.elements.elements_finders import ByAttributesFinder, ByTextFinder
+from objects.elements.elements_post_processings import (
+    ExactElementTaker,
+    SplitTagContentByInnerTags,
+    ExcludeByCollectorFilter,
+)
 from objects.parsing_handlers.parsing_process import ParsingProcess
 from objects.types.custom_exceptions import CommandException
 from objects.types.field_types import FieldTypes
@@ -42,16 +46,16 @@ link_websites: Dict[str, Callable[[ExtendedFactory], Any]] = {}
 
 
 def write_new_settings():
-    # "tl.rulate.ru"
+    # tl.rulate.ru
     website = "tl.rulate.ru"
     recognized_websites.append(website)
     block_screen_websites[website] = lambda factory: (
-        ExtendedFactory(factory).finder(
+        factory.finder(
             f"{FINDER_NAME}_block_0", ByAttributesFinder, search_types=["button"], search_limits={"name": "ok"}
         )
     ).main_block_handler(ButtonClickHandler, button_finder=f"${FINDER_NAME}_block_0")
 
-    # "gravitytales.com"
+    # gravitytales.com
     website = "gravitytales.com"
     recognized_websites.append(website)
     content_websites[website] = lambda factory: (
@@ -63,7 +67,7 @@ def write_new_settings():
         factory, ["div"], {"class": "chapter__actions-right"}, ["a"], {}, -1
     )
 
-    # "www.novelhall.com"
+    # www.novelhall.com
     website = "www.novelhall.com"
     recognized_websites.append(website)
     chrome_websites.append(website)
@@ -74,6 +78,81 @@ def write_new_settings():
         orchestra(factory),
     )
     link_websites[website] = lambda factory: simple_link(factory, link_type=["a"], link_limit={"rel": "next"})
+
+    # ru.novelcool.com
+    website = "ru.novelcool.com"
+    recognized_websites.append(website)
+    chrome_websites.append(website)
+    chrome_undetected_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h2"])
+        .finder(
+            f"{FINDER_NAME}_text_0",
+            ByAttributesFinder,
+            search_types=["div"],
+            search_limits={"class": "chapter-reading-section"},
+        )
+        .finder(f"{FINDER_NAME}_text_1", ByAttributesFinder, search_types=["p"])
+        .finder(
+            f"{FINDER_NAME}_text_2", ByAttributesFinder, search_types=["p"], search_limits={"class": "chapter-end-mark"}
+        )
+        .post_processing(f"{POST_PROCESSING_NAME}_text_0", ExcludeByCollectorFilter, finder=f"${FINDER_NAME}_text_2")
+        .collector(
+            f"{COLLECTOR_NAME}_text",
+            FieldTypes.Text,
+            [f"{FINDER_NAME}_text_0", f"{FINDER_NAME}_text_1"],
+            [f"{POST_PROCESSING_NAME}_text_0"] + DEFAULT_POST_PROCESSINGS,
+        ),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        factory.finder(
+            f"{FINDER_NAME}_link_0",
+            ByAttributesFinder,
+            search_types=["div"],
+            search_limits={"class": "chapter-reading-pagination"},
+        )
+        .finder(f"{FINDER_NAME}_link_1", ByTextFinder, search_types=["a"], inner_context="Далее > >")
+        .link_collector([f"{FINDER_NAME}_link_0", f"{FINDER_NAME}_link_1"])
+    )
+
+    # www.novelcool.com
+    website = "www.novelcool.com"
+    recognized_websites.append(website)
+    chrome_websites.append(website)
+    chrome_undetected_websites.append(website)
+    content_websites[website] = content_websites["ru.novelcool.com"]
+    link_websites[website] = link_websites["ru.novelcool.com"]
+
+    # betwixtedbutterfly.com
+    website = "betwixtedbutterfly.com"
+    recognized_websites.append(website)
+    chrome_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"], {"class": "post-title"}),
+        simple_text(factory, ["div"], {"data-elementor-type": "wp-post"}, ["p"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        factory.finder(
+            f"{FINDER_NAME}_link_0",
+            ByAttributesFinder,
+            search_types=["div"],
+            search_limits={"data-elementor-type": "wp-post"},
+        )
+        .finder(
+            f"{FINDER_NAME}_link_1",
+            ByAttributesFinder,
+            search_types=["section"],
+            search_limits={"class": "elementor-inner-section"},
+        )
+        .finder(f"{FINDER_NAME}_link_2", ByAttributesFinder, search_types=["a"])
+        .post_processing(f"{POST_PROCESSING_NAME}_link_0", ExactElementTaker, take_at_index=-1)
+        .link_collector(
+            [f"{FINDER_NAME}_link_0", f"{FINDER_NAME}_link_1", f"{FINDER_NAME}_link_2"],
+            [f"{POST_PROCESSING_NAME}_link_0"],
+        )
+    )
 
 
 write_new_settings()

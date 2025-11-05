@@ -1,19 +1,23 @@
+import os
 from datetime import timedelta
+from dotenv import load_dotenv
 
-CHROME_DRIVER_PATH = "C:/Users/timab/Downloads/chromedriver-win64/chromedriver.exe"  # path to chromedriver
-TESSERACT_PATH = "C:/Program Files/Tesseract-OCR/tesseract.exe"  # path to tesseract
-OUTPUT_FILE_DIRECTORY = "C:/Users/timab/PycharmProjects/webscrapper/temp/output/"
-CHROME_DIRECTORY = "C:/Users/timab/PycharmProjects/webscrapper/dependencies/selenium_chrome"
+load_dotenv(dotenv_path=os.environ.get("ENV_PATH"))
+
+CHROME_DRIVER_PATH = os.environ["CHROME_DRIVER_PATH"]  # path to chromedriver
+TESSERACT_PATH = os.environ["TESSERACT_PATH"]  # path to tesseract
+OUTPUT_FILE_DIRECTORY = os.environ["OUTPUT_FILE_DIRECTORY"]
+CHROME_DIRECTORY = os.environ["CHROME_DIRECTORY"]
 CHROME_PROFILE = "Default"  # not supported - Default will be forcefully used
-TEMP_FOLDER = "C:/Users/timab/PycharmProjects/webscrapper/temp"
-DB_PATH = "C:/Users/timab/PycharmProjects/webscrapper/db/app.db"
-WINDOW_W_MIN = 400
-WINDOW_W_MAX = 1920
-WINDOW_H_MIN = 400
-WINDOW_H_MAX = 2000
-MAX_NEW_WEBSITE_REQUESTS = 100
-MAX_ACTIVE_PROCESSES = 10
-MAX_CHAPTERS_COUNT = 300
-TASKS_EXECUTION_TIMEOUT_SECONDS = 900
-FINISHED_TASKS_LIFETIME = timedelta(days=2)
-APPLICATION_LOGS_PATH = "C:/Users/timab/PycharmProjects/webscrapper/temp/app_log.txt"
+TEMP_FOLDER = os.environ["TEMP_FOLDER"]
+DB_PATH = os.environ["DB_PATH"]
+WINDOW_W_MIN = os.environ["WINDOW_W_MIN"]
+WINDOW_W_MAX = os.environ["WINDOW_W_MAX"]
+WINDOW_H_MIN = os.environ["WINDOW_H_MIN"]
+WINDOW_H_MAX = os.environ["WINDOW_H_MAX"]
+MAX_NEW_WEBSITE_REQUESTS = os.environ["MAX_NEW_WEBSITE_REQUESTS"]
+MAX_ACTIVE_PROCESSES = os.environ["MAX_ACTIVE_PROCESSES"]
+MAX_CHAPTERS_COUNT = os.environ["MAX_CHAPTERS_COUNT"]
+TASKS_EXECUTION_TIMEOUT_SECONDS = os.environ["TASKS_EXECUTION_TIMEOUT_SECONDS"]
+FINISHED_TASKS_LIFETIME = timedelta(seconds=int(os.environ["FINISHED_TASKS_LIFETIME_SECONDS"]))
+APPLICATION_LOGS_PATH = os.environ["APPLICATION_LOGS_PATH"]

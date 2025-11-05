@@ -46,7 +46,9 @@ class DriverHandler:
 
     def _usual(self) -> WebDriver:
         if self.chrome_directory:
-            return Driver(headless=False, user_data_dir=self.chrome_directory, **self._build_default_settings())
+            return Driver(
+                uc=False, headless=True, user_data_dir=self.chrome_directory, **self._build_default_settings()
+            )
         else:
             return Driver(uc=False, headless=True, **self._build_default_settings())
 

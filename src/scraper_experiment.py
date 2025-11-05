@@ -10,7 +10,7 @@ from settings.system_defaults import TESSERACT_PATH, TEMP_FOLDER
 pytesseract.tesseract_cmd = TESSERACT_PATH
 os.makedirs(TEMP_FOLDER, exist_ok=True)
 
-StartingURL = ""
+StartingURL = "https://www.novelcool.com/chapter/Comprehension-Ability-Creating-and-teaching-the-Dao-in-various-worlds-Chapter-1-Chapter-1-Chapter-1-Conscription/12713642/"
 request_id = str(uuid.uuid4())
 
 
