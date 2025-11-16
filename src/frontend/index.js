@@ -114,20 +114,21 @@ window.addEventListener('DOMContentLoaded', () => {
         method: 'GET'
       });
       const ct = res.headers.get('content-type') || '';
-      const text = await res.text();
-      if (text != "Request is not completed yet") {
-		      removeFromLocalStorageArray("pending-requests", req_id);
-		      showPendingRequests();
-      }
-      if (!res.ok) {
-        throw new Error(text || ('HTTP ' + res.status));
-      }
       if (ct.includes('application/zip')) {
         const blob = await res.blob();
+        removeFromLocalStorageArray("pending-requests", req_id);
+	      showPendingRequests();
         downloadBlob(blob, 'Result.zip');
         showMsg(dlMsg, 'Download started for Result.zip', true);
       } else {
         const text = await res.text();
+	      if (text != "Request is not completed yet") {
+			      removeFromLocalStorageArray("pending-requests", req_id);
+			      showPendingRequests();
+	      }
+	      if (!res.ok) {
+	        throw new Error(text || ('HTTP ' + res.status));
+	      }
         showMsg(dlMsg, text, true);
       }
     } catch (err) {

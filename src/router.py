@@ -32,7 +32,7 @@ def index():
     return HTMLResponse(INDEX_HTML, media_type="text/html", status_code=200)
 
 
-@api_router.get("/docs")
+@api_router.get("/documentation")
 def docs():
     return HTMLResponse(DOC_HTML, media_type="text/html", status_code=200)
 

@@ -12,3 +12,5 @@ old_versions/backup
 .env
 /**/__pycache__
 /src/scraper_experiment.py
+/src/settings/*
+!/src/settings/*.example

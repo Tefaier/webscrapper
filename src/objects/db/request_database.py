@@ -78,7 +78,8 @@ class RequestDatabase:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO requests (url, chapters, request_id, file_extension) VALUES (?, ?, ?, ?)", (url, chapters, str(uuid.uuid4()), file_extension)
+                "INSERT INTO requests (url, chapters, request_id, file_extension) VALUES (?, ?, ?, ?)",
+                (url, chapters, str(uuid.uuid4()), file_extension),
             )
             conn.commit()
             return cursor.lastrowid  # type: ignore
@@ -125,7 +126,7 @@ class RequestDatabase:
             cursor = conn.cursor()
             # First select IDs of requests to kill
             cursor.execute(
-                "SELECT id FROM requests WHERE status in ('CREATED', 'FAILED') and completed_at != null and completed_at < ?",
+                "SELECT id FROM requests WHERE expired is FALSE and completed_at is not null and completed_at < ?",
                 (datetime.now() - expiration_period,),
             )
             ids = [row[0] for row in cursor.fetchall()]

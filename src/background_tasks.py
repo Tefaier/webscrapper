@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 import os
 import shutil
-import logging
 from fastapi import FastAPI
 
 from dto.request import Request
@@ -21,7 +20,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from utils.web_functions import get_domain
 
 scheduler = BackgroundScheduler()
-logger = LogWriter(APPLICATION_LOGS_PATH).get_logger(__name__)
+log_writer = LogWriter(APPLICATION_LOGS_PATH)
+logger = log_writer.get_logger(__name__)
 db_executor = ThreadPoolExecutor(max_workers=MAX_ACTIVE_PROCESSES)
 executor = ThreadPoolExecutor(max_workers=MAX_ACTIVE_PROCESSES)
 
@@ -36,7 +36,10 @@ async def lifespan(app: FastAPI):
             replace_existing=True,
         )
         scheduler.add_job(
-            clear_expired_requests, trigger=IntervalTrigger(hours=1), id="clear_expired_requests", replace_existing=True
+            clear_expired_requests,
+            trigger=IntervalTrigger(minutes=1),
+            id="clear_expired_requests",
+            replace_existing=True,
         )
         scheduler.start()
         logger.info("Scheduler started")
