@@ -1,1 +1,0 @@
-IMAGE_WIDTH_CM = 7

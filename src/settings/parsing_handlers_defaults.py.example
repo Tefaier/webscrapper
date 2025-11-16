@@ -1,1 +1,0 @@
-REQUEST_GET_TIMEOUT_SECONDS = 5  # timeout of getting page when not selenium used
