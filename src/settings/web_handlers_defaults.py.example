@@ -1,0 +1,17 @@
+SCROLL_PAUSE_TIME = 0.5  # pause time for scrolling page
+SCROLL_MAX_ATTEMPTS = 20  # max page scroll attempts in case scroll is True in process settings
+SLEEP_BEFORE_OPEN = False  # whether to sleep before opening a next page
+SLEEP_BEFORE_OPEN_SECONDS = 1  # how many seconds to sleep
+SLEEP_BEFORE_PROCESS = False  # whether to sleep before starting parsing after opening page
+SLEEP_BEFORE_PROCESS_SECONDS = 1  # how many seconds to sleep
+MAX_ATTEMPTS = 2  # maximum attempts to open the page, in case of chrome reload, new session, cookies clearing are used
+MAX_PAGE_LOAD_WAIT_SECONDS = 5  # maximum time to wait for parser to succeed on page
+PAGE_LOAD_CHECK_INTERVAL_SECONDS = 0.5  # at what intervals to try apply parser
+PRESS_LINK = True  # whether to press link element instead of using href, works only in case of selenium
+RELOAD_AFTER = False  # whether to reload page after going by link
+LINK_PURE_CLICK = False  # whether to press link without checking url change
+WAIT_FOR_URL_CHANGE_SECONDS = 3  # maximum time for url to change after pressing the link
+UNDETECTED_METHOD = True  # whether to use undetected selenium (guest profile will be used)
+WINDOW_WIDTH = 1920  # virtual window width
+WINDOW_HEIGHT = 1080  # virtual window height
+DRIVER_VERSION = 141  # UNSUPPORTED
