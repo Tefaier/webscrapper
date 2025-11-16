@@ -1,5 +1,5 @@
-SCROLL_PAUSE_TIME = 0.5  # pause time for scrolling page
-SCROLL_MAX_ATTEMPTS = 20  # max page scroll attempts in case scroll is True in process settings
+SCROLL_PAUSE_TIME = 0.5
+SCROLL_MAX_ATTEMPTS = 20
 SLEEP_BEFORE_OPEN = False
 SLEEP_BEFORE_OPEN_SECONDS = 1
 SLEEP_BEFORE_PROCESS = False

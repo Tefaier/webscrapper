@@ -9,10 +9,9 @@ from objects.builders.website_resolve import resolve_website
 from objects.file_handlers.log_writer import LogWriter
 from settings.system_defaults import (
     APPLICATION_LOGS_PATH,
-    DB_PATH,
-    TEMP_FOLDER,
     MAX_ACTIVE_PROCESSES,
     TASKS_EXECUTION_TIMEOUT_SECONDS,
+    OUTPUT_FILE_DIRECTORY,
 )
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -107,7 +106,7 @@ def clean_single_request(id: int):
         if not request:
             return
 
-        folder_path = os.path.join(TEMP_FOLDER, str(request.request_id))
+        folder_path = os.path.join(OUTPUT_FILE_DIRECTORY, str(request.request_id))
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
 

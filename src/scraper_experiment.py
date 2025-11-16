@@ -5,12 +5,12 @@ from dto.request import Request
 from objects.builders.website_resolve import resolve_website
 from pytesseract import pytesseract
 
-from settings.system_defaults import TESSERACT_PATH, TEMP_FOLDER
+from settings.system_defaults import TESSERACT_PATH, OUTPUT_FILE_DIRECTORY
 
 pytesseract.tesseract_cmd = TESSERACT_PATH
-os.makedirs(TEMP_FOLDER, exist_ok=True)
+os.makedirs(OUTPUT_FILE_DIRECTORY, exist_ok=True)
 
-StartingURL = "https://www.novelcool.com/chapter/Comprehension-Ability-Creating-and-teaching-the-Dao-in-various-worlds-Chapter-1-Chapter-1-Chapter-1-Conscription/12713642/"
+StartingURL = "https://www.novelcool.com/chapter/Comprehension-Ability-Creating-and-teaching-the-Dao-in-various-worlds-Chapter-601/13127572/"
 request_id = str(uuid.uuid4())
 
 

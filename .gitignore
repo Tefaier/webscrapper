@@ -11,3 +11,4 @@ old_versions/backup
 /dependencies/*
 .env
 /**/__pycache__
+/src/scraper_experiment.py

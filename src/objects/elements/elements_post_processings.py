@@ -6,7 +6,13 @@ from selenium.webdriver.chrome.webdriver import WebDriver
 from objects.elements.elements_finders import ElementsFinder
 from objects.file_handlers.log_writer import LogWriter
 from objects.types.custom_exceptions import UnsupportedArgumentsException
-from settings.elements_defaults import FILTER_NO_MEANING, SPACES_NORMALIZATION, SYMBOLS_CONVERTION, REPEAT_TOLERANCE
+from settings.elements_defaults import (
+    FILTER_NO_MEANING,
+    SPACES_NORMALIZATION,
+    SYMBOLS_CONVERTION,
+    REPEAT_TOLERANCE,
+    EXPECTED_LANGUAGES,
+)
 from utils.text_functions import (
     string_with_meaning,
     string_with_style,
@@ -88,13 +94,13 @@ class JammedTextConverter(ElementsPostProcessing):
         log_writer: LogWriter,
         jammed_finder: ElementsFinder = None,
         driver: WebDriver = None,
-        expected_languages: List[str] = None,
+        expected_languages: List[str] = EXPECTED_LANGUAGES,
         try_fix_text: bool = True,
     ):
         super().__init__(log_writer)
         self.driver = driver
         self.jammed_finder = jammed_finder
-        self.expected_languages = expected_languages if expected_languages is not None else ["eng"]
+        self.expected_languages = expected_languages
         # self.jammed_classes = jammed_classes if jammed_classes is not None else ["jum", "jmbl"]
         self.fix = try_fix_text
 

@@ -2,7 +2,7 @@ import logging
 
 import cssutils
 
-from settings.system_defaults import TEMP_FOLDER, TESSERACT_PATH
+from settings.system_defaults import TESSERACT_PATH, OUTPUT_FILE_DIRECTORY, APPLICATION_LOGS_PATH
 import os
 from pytesseract import pytesseract
 from fastapi import FastAPI
@@ -13,7 +13,8 @@ from background_tasks import lifespan
 # Initialize system paths and folders
 cssutils.log.setLevel(logging.CRITICAL)
 pytesseract.tesseract_cmd = TESSERACT_PATH
-os.makedirs(TEMP_FOLDER, exist_ok=True)
+os.makedirs(os.path.dirname(APPLICATION_LOGS_PATH), exist_ok=True)
+os.makedirs(OUTPUT_FILE_DIRECTORY, exist_ok=True)
 
 # Create FastAPI app
 app = FastAPI(lifespan=lifespan)
