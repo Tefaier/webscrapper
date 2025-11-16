@@ -13,21 +13,28 @@ import zipfile
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from objects.types.file_extensions import FileExtensions
+from objects.builders.website_resolve import recognized_websites
 
 api_router = APIRouter()
 
 # Pre-render the template once at startup and cache globally
 _jinja_env = Environment(
-    loader=FileSystemLoader(searchpath="./frontend"),
-    autoescape=select_autoescape(['html', 'xml'])
+    loader=FileSystemLoader(searchpath="./frontend"), autoescape=select_autoescape(["html", "xml"])
 )
 _index_template = _jinja_env.get_template("index.html")
 INDEX_HTML = _index_template.render(file_extensions=list(FileExtensions))
+_doc_template = _jinja_env.get_template("documentation.html")
+DOC_HTML = _doc_template.render(recognized_websites=recognized_websites)
 
 
 @api_router.get("/")
 def index():
     return HTMLResponse(INDEX_HTML, media_type="text/html", status_code=200)
+
+
+@api_router.get("/docs")
+def docs():
+    return HTMLResponse(DOC_HTML, media_type="text/html", status_code=200)
 
 
 @api_router.post("/requests")
