@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
         )
         scheduler.add_job(
             clear_expired_requests,
-            trigger=IntervalTrigger(minutes=1),
+            trigger=IntervalTrigger(hours=1),
             id="clear_expired_requests",
             replace_existing=True,
         )
@@ -56,6 +56,7 @@ async def lifespan(app: FastAPI):
 
 def process_waiting_requests():
     """Process pending requests with parallel execution"""
+    logger.debug("process_waiting_requests initiated")
     try:
         ids = db.get_pending_requests(MAX_ACTIVE_PROCESSES)
 
@@ -84,6 +85,7 @@ def process_waiting_requests():
 
 def clear_expired_requests():
     """Clean up expired requests and their storage folders"""
+    logger.debug("clear_expired_requests initiated")
     try:
         expired_ids = db.get_expired_requests()
 

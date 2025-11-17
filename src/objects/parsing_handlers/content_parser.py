@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import time
 from typing import Optional
 
 import requests
@@ -8,9 +7,9 @@ from bs4 import BeautifulSoup
 from objects.elements.elements_orchestra import ElementsOrchestra
 from objects.file_handlers.log_writer import LogWriter
 from objects.types.custom_exceptions import TargetNotFoundException
-from objects.web_handlers.block_screen_handler import BlockScreenHandler, NoHandling
+from objects.web_handlers.block_screen_handler import BlockScreenHandler
 from objects.web_handlers.driver_handler import DriverHandler
-from objects.web_handlers.scroll_strategy import ScrollStrategy, NoScroll
+from objects.web_handlers.scroll_strategy import ScrollStrategy
 from objects.web_handlers.reload_handler import ReloadHandler
 from settings.parsing_handlers_defaults import REQUEST_GET_TIMEOUT_SECONDS
 

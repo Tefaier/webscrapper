@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Dict, Any
 
-from bs4 import BeautifulSoup
-
 from objects.file_handlers.log_writer import LogWriter
 from objects.parsing_handlers.content_parser import ContentParser
 from objects.types.custom_exceptions import TargetNotFoundException

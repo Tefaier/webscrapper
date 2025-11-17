@@ -14,7 +14,6 @@ from objects.file_handlers.log_writer import LogWriter
 from objects.file_handlers.output_writers import OutputWriter
 from objects.types.custom_exceptions import TargetNotFoundException
 from objects.types.field_types import FieldTypes
-from objects.web_handlers.driver_handler import DriverHandler
 from settings.elements_defaults import (
     LINK_INFO_PART,
     MIN_EXPECTED_PARAGRAPHS,

@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import Optional, TYPE_CHECKING, Callable
-
-from bs4 import BeautifulSoup
-from selenium.webdriver.chrome.webdriver import WebDriver
+from typing import TYPE_CHECKING
 
 from objects.file_handlers.log_writer import LogWriter
 from objects.types.custom_exceptions import TargetNotFoundException, MaxOpeningTimeExceededException

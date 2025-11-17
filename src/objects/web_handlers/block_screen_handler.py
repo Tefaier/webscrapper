@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC
 from typing import List
 
 from bs4 import BeautifulSoup

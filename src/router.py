@@ -24,7 +24,7 @@ _jinja_env = Environment(
 _index_template = _jinja_env.get_template("index.html")
 INDEX_HTML = _index_template.render(file_extensions=list(FileExtensions))
 _doc_template = _jinja_env.get_template("documentation.html")
-DOC_HTML = _doc_template.render(recognized_websites=recognized_websites)
+DOC_HTML = _doc_template.render(recognized_websites=sorted(recognized_websites))
 
 
 @api_router.get("/")

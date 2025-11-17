@@ -5,7 +5,6 @@ from typing import Optional, List
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup, PageElement
-from bs4.element import Tag
 from selenium.common import TimeoutException
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -18,7 +17,6 @@ from objects.types.custom_exceptions import (
     UnsupportedArgumentsException,
 )
 
-from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 
 from objects.web_handlers.driver_handler import DriverHandler

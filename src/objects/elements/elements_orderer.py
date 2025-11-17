@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
-from typing import List, Tuple, Iterable
+from typing import List, Tuple
 
 from bs4 import Tag, PageElement
 

@@ -1,20 +1,13 @@
-from typing import Dict, Callable, Any, List, Optional
+from typing import Callable, Any
 
 from dto.request import Request
-from objects.builders.extended_factory import ExtendedFactory
-from objects.elements.elements_finders import ByAttributesFinder, ByTextFinder, ByCssSelectorFinder
-from objects.elements.elements_post_processings import (
-    ExactElementTaker,
-    SplitTagContentByInnerTags,
-    ExcludeByCollectorFilter,
-)
+from objects.elements.elements_finders import ByTextFinder, ByCssSelectorFinder
+from objects.elements.elements_post_processings import ExcludeByCollectorFilter
 from objects.parsing_handlers.parsing_process import ParsingProcess
 from objects.types.custom_exceptions import CommandException
-from objects.types.field_types import FieldTypes
 from objects.types.order_stategy import OrderStrategy
 from objects.web_handlers.block_screen_handler import ButtonClickHandler
 from objects.web_handlers.scroll_strategy import BottomScroll
-from settings.builders_defaults import *
 from utils.extra_factory_functions import *
 
 

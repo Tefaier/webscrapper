@@ -1,19 +1,14 @@
 import base64
-import io
 import re
-from typing import Optional, Union, Dict, List
+from typing import Optional, Dict, List
 
 import cssutils
 import cv2
 import numpy as np
 from bs4 import BeautifulSoup, PageElement, Tag, NavigableString
 from pytesseract import pytesseract
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webelement import WebElement
-from undetected_chromedriver import ChromeOptions
-from PIL import Image
 
 
 # from https://gist.github.com/ergoithz/6cf043e3fdedd1b94fcf

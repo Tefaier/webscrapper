@@ -15,9 +15,6 @@ from objects.web_handlers.scroll_strategy import ScrollStrategy, NoScroll
 from objects.web_handlers.block_screen_handler import (
     BlockScreenHandler,
     NoHandling,
-    CollectedHandler,
-    FieldInputHandler,
-    ButtonClickHandler,
 )
 from objects.web_handlers.reload_handler import ReloadHandler
 from objects.elements.elements_finders import ElementsFinder

@@ -21,4 +21,5 @@ Potentially it can be as well be used to parse mangas at it is not supported cur
 
 ## Pointers:
 - if you want to add support for other websites or to patch some existing (some of them may even not work at all already), you should go to website_resolve and configure scraper for website using ExtendedFactory. Pay attention that it provides to default setup at the beginning and at the moment ParsingProcess is created, including post processors you can use. 
-- locally you will have to for all files `*.example` write an analogue without  this postfix with value you want
+- locally you will have to for all files `*.example` write an analogue without this postfix with value you want
+- locally python 3.8.10 was used and published requirements are for this version
