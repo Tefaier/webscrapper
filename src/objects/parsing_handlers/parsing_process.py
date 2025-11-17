@@ -23,6 +23,7 @@ class ParsingProcess:
     """
 
     def __init__(self, log_writer: LogWriter, parser: ContentParser, link_handler: LinkHandler) -> None:
+        self.log_writer = log_writer
         self.logger = log_writer.get_logger(type(self).__name__)
         self.parser = parser
         self.link_handler = link_handler
@@ -106,3 +107,4 @@ class ParsingProcess:
             return result
         finally:
             self.parser.close()
+            del self.log_writer

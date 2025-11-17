@@ -98,6 +98,8 @@ def replace_element_with_text(soup: BeautifulSoup, element: PageElement, text: s
         replacement = soup.new_tag("p")
         replacement.string = text
         element.replace_with(replacement)
+        replacement.sourceline = element.sourceline
+        replacement.sourcepos = element.sourcepos
         return replacement
     else:
         return NavigableString(text)

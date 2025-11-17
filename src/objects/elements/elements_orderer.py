@@ -66,12 +66,9 @@ class ElementsOrderer:
         if isinstance(el, Tag):
             # BeautifulSoup Tag may expose sourceline when using lxml parser
             sl = getattr(el, "sourceline", None)
-            try:
-                sl_val = int(sl) if sl is not None else None
-            except (TypeError, ValueError):
-                sl_val = None
-            if sl_val is not None:
+            sp = getattr(el, "sourcepos", None)
+            if sl is not None and sp is not None:
                 # Items with sourceline come first, sorted by line number
-                return 0, sl_val, si, ei
+                return 0, sl, sp, si, ei
         # Fallback: place after sourceline items, maintaining original stability
-        return 1, 0, si, ei
+        return 1, 0, 0, si, ei

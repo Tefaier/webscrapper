@@ -12,7 +12,8 @@ from background_tasks import lifespan
 
 # Initialize system paths and folders
 cssutils.log.setLevel(logging.CRITICAL)
-pytesseract.tesseract_cmd = TESSERACT_PATH
+if TESSERACT_PATH != "" and TESSERACT_PATH is not None:
+    pytesseract.tesseract_cmd = TESSERACT_PATH
 os.makedirs(os.path.dirname(APPLICATION_LOGS_PATH), exist_ok=True)
 os.makedirs(OUTPUT_FILE_DIRECTORY, exist_ok=True)
 

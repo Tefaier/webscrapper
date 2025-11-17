@@ -2,7 +2,7 @@ from typing import Dict, Callable, Any, List, Optional
 
 from dto.request import Request
 from objects.builders.extended_factory import ExtendedFactory
-from objects.elements.elements_finders import ByAttributesFinder, ByTextFinder
+from objects.elements.elements_finders import ByAttributesFinder, ByTextFinder, ByCssSelectorFinder
 from objects.elements.elements_post_processings import (
     ExactElementTaker,
     SplitTagContentByInnerTags,
@@ -11,6 +11,7 @@ from objects.elements.elements_post_processings import (
 from objects.parsing_handlers.parsing_process import ParsingProcess
 from objects.types.custom_exceptions import CommandException
 from objects.types.field_types import FieldTypes
+from objects.types.order_stategy import OrderStrategy
 from objects.web_handlers.block_screen_handler import ButtonClickHandler
 from objects.web_handlers.scroll_strategy import BottomScroll
 from settings.builders_defaults import *
@@ -122,7 +123,16 @@ def write_new_settings():
     chrome_websites.append(website)
     chrome_undetected_websites.append(website)
     content_websites[website] = content_websites["ru.novelcool.com"]
-    link_websites[website] = link_websites["ru.novelcool.com"]
+    link_websites[website] = lambda factory: (
+        factory.finder(
+            f"{FINDER_NAME}_link_0",
+            ByAttributesFinder,
+            search_types=["div"],
+            search_limits={"class": "chapter-reading-pagination"},
+        )
+        .finder(f"{FINDER_NAME}_link_1", ByTextFinder, search_types=["a"], inner_context="Next>>")
+        .link_collector([f"{FINDER_NAME}_link_0", f"{FINDER_NAME}_link_1"])
+    )
 
     # betwixtedbutterfly.com
     website = "betwixtedbutterfly.com"
@@ -154,6 +164,27 @@ def write_new_settings():
         )
     )
 
+    # ranobelib.me
+    website = "ranobelib.me"
+    recognized_websites.append(website)
+    chrome_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"]),
+        simple_text(factory, ["div"], {"class": "text-content"}),
+        factory.finder(f"{FINDER_NAME}_image_0", ByAttributesFinder, search_types=["img"]),
+        factory.collector(
+            f"{COLLECTOR_NAME}_image", FieldTypes.Image, [f"{FINDER_NAME}_text_0", f"{FINDER_NAME}_image_0"]
+        ),
+        factory.orderer(OrderStrategy.BY_SOURCELINE),
+        orchestra(factory, with_images=True),
+    )
+    link_websites[website] = lambda factory: (
+        factory.finder(f"{FINDER_NAME}_link_0", ByAttributesFinder, search_types=["header"])
+        .finder(f"{FINDER_NAME}_link_1", ByCssSelectorFinder, selector="div > div:nth-child(3) > div + a")
+        .link_collector([f"{FINDER_NAME}_link_0", f"{FINDER_NAME}_link_1"])
+    )
+    reload_websites[website] = {"sleep_before_process": True, "sleep_before_process_seconds": 5}
+
 
 write_new_settings()
 
@@ -164,7 +195,6 @@ active_process_dicts = {
     "jaomix.ru": {"chrome": False},
     "ranobes.com": {"chrome": True},
     "ranobes.net": {"chrome": True, "sleep": True},
-    "ranobelib.me": {"chrome": True, "sleep": True},
     "tl.rulate.ru": {
         "chrome": True,
         "min_len": 2000,
@@ -191,7 +221,6 @@ active_process_dicts = {
     "www.royalroad.com": {"chrome": False},
     "exiledrebelsscanlations.com": {"chrome": False},
     "moonlightnovel.com": {"chrome": False},
-    "www.novelcool.com": {"chrome": True},
     "dummynovels.com": {"chrome": False, "chrome_undetected": True},
     "www.wuxiaworld.eu": {"chrome": False},
     "www.wuxiabee.com": {"chrome": True},
@@ -277,18 +306,6 @@ active_parser_dicts = {
         "title_l": None,
         "link_h": "a",
         "link_l": {"id": "next"},
-    },
-    "ranobelib.me": {
-        "left": 0,
-        "right": 0,
-        "images": True,
-        "text_h": "p",
-        "text_l": {"class": "text-content"},
-        "title_h": "h1",
-        "link_h": "a",
-        "link_l": {"class": "wa_p"},
-        "link_p": -1,
-        "link_container": "div",
     },
     "tl.rulate.ru": {
         "left": 0,
@@ -468,16 +485,6 @@ active_parser_dicts = {
         "title_h": "empty",
         "link_h": "a",
         "link_l": {"rel": "next"},
-    },
-    "www.novelcool.com": {
-        "text_h": "p",
-        "text_l": {"class": "chapter-reading-section"},
-        "title_h": "h2",
-        "title_l": {"class": "chapter-title"},
-        "link_h": "a",
-        "link_l": {"class": "chapter-reading-pagination"},
-        "link_container": "div",
-        "link_p": -1,
     },
     "dummynovels.com": {
         "text_h": "p",

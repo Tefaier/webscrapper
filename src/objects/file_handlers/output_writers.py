@@ -5,6 +5,7 @@ from io import TextIOWrapper, BytesIO
 from bs4 import PageElement
 from docx import Document
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.shared import Cm
 from PIL import Image
 
 from objects.types.field_types import FieldTypes
@@ -21,21 +22,26 @@ class OutputWriter:
             elif isinstance(data, str):
                 self.write_text(data)
         elif field_type == FieldTypes.Image:
-            self.write_image(data)
+            self.write_image(data, "png")
 
-    def write_text(self, string: str) -> None: ...
-    def write_image(self, data) -> None: ...
-    def close(self) -> None: ...
+    def write_text(self, string: str) -> None:
+        ...
+
+    def write_image(self, data, format: str) -> None:
+        ...
+
+    def close(self) -> None:
+        ...
 
 
 class TxtWriter(OutputWriter):
     def __init__(self, full_path: str):
-        self._file: TextIOWrapper = open(full_path, 'w', encoding='utf-8')
+        self._file: TextIOWrapper = open(full_path, "w", encoding="utf-8")
 
     def write_text(self, string: str) -> None:
         self._file.write(string + "\n")
 
-    def write_image(self, data) -> None:
+    def write_image(self, data, format: str) -> None:
         # Images are not supported for plain text; skip silently
         return
 
@@ -45,14 +51,14 @@ class TxtWriter(OutputWriter):
 
 class HtmlWriter(OutputWriter):
     def __init__(self, full_path: str):
-        self._file: TextIOWrapper = open(full_path, 'w', encoding='utf-8')
+        self._file: TextIOWrapper = open(full_path, "w", encoding="utf-8")
         self._file.write("<html>\n<head></head>\n<body>\n")
 
     def write_text(self, string: str) -> None:
         self._file.write("<p>" + string + "</p>\n")
 
-    def write_image(self, data) -> None:
-        self._file.write(f'<img src="data:image/png;base64,{convert_binary(data, "string")}>')
+    def write_image(self, data, format: str) -> None:
+        self._file.write(f'<img src="data:image/{format};base64,{convert_binary(data, "string")}">')
 
     def close(self) -> None:
         self._file.write("</body>")
@@ -68,16 +74,17 @@ class DocxWriter(OutputWriter):
     def write_text(self, string: str) -> None:
         self._doc.add_paragraph(string)
 
-    def write_image(self, data) -> None:
+    def write_image(self, data, format: str) -> None:
         try:
             new_file = BytesIO()
-            Image.open(BytesIO(convert_binary(data, "PIL"))).convert('RGB').save(new_file, format="png")
+            image = Image.open(BytesIO(convert_binary(data, "PIL")), formats=[format])
+            image.save(new_file, format='PNG')
             new_file.seek(0)
             p = self._doc.add_paragraph()
             p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             r = p.add_run()
-            r.add_picture(new_file, width=self.image_width)
-        except Exception:
+            r.add_picture(new_file, width=Cm(self.image_width))
+        except Exception as e:
             return
 
     def close(self) -> None:
@@ -87,10 +94,10 @@ class DocxWriter(OutputWriter):
 class WriterFactory:
     @staticmethod
     def create(full_path: str, file_type: str) -> OutputWriter:
-        if file_type == 'txt':
+        if file_type == "txt":
             return TxtWriter(full_path)
-        if file_type == 'html':
+        if file_type == "html":
             return HtmlWriter(full_path)
-        if file_type == 'docx':
+        if file_type == "docx":
             return DocxWriter(full_path)
         raise UnsupportedArgumentsException(f"Unsupported file type: {file_type}")
