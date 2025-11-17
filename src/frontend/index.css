@@ -1,0 +1,57 @@
+body { font-family: Arial, sans-serif; margin: 2rem; }
+form { margin-bottom: 2rem; padding: 1rem; border: 1px solid #ddd; border-radius: 6px; }
+label { display:block; margin: .25rem 0; }
+input[type=text], input[type=number] { width: 320px; padding: .5rem; }
+select { width: 320px; padding: .5rem; box-sizing: content-box; border-radius: 4px; margin: 1.6px; }
+button { padding: .5rem 1rem; cursor: pointer; }
+.msg { white-space: pre-line; padding: .5rem; margin: .5rem 0; border-radius: 4px; }
+.ok { background: #e6ffed; border: 1px solid #b7eb8f; }
+.err { background: #fff1f0; border: 1px solid #ffa39e; }
+code { background: #f6f8fa; padding: .1rem .25rem; }
+.mt { margin-top: .5rem; }
+.hidden { display: none; }
+.top-nav .nav-link {
+  text-decoration: none;
+  color: inherit;
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+.top-nav {
+  background: #f8f9fa;
+  padding: 1rem 2rem;
+  display: flex;
+  gap: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+.nav-link {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  color: #333; /* Default text color */
+  background: transparent;
+}
+.nav-link.active {
+  background: #007bff; /* Blue background for active state */
+  color: white;
+}
+.nav-link:not(.active):hover {
+  background: #e9ecef; /* Light gray on hover */
+  color: #0056b3;
+}
+.nav-link.active:hover {
+  background: #0056b3; /* Darker blue when active link is hovered */
+  color: white;
+}
+.nav-link:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+.nav-link.active:focus {
+  outline: 2px solid #0056b3;
+  outline-offset: 2px;
+}

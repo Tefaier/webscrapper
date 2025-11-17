@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebScrapper Documentation</title>
+  <link rel="stylesheet" href="/static/index.css" />
+  <link rel="icon" type="image/x-icon" href="/static/webscrapper_v2.ico">
+</head>
+<body>
+  <header>
+    <nav class="top-nav">
+      <a href="/" class="nav-link">Home</a>
+      <a href="/documentation" class="nav-link active">Documentation</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Documentation</h1>
+
+    <section>
+      <h2>Credits</h2>
+      <p>Project originates from <a href="https://github.com/Tefaier/webscrapper">GitHub</a>. You are free to privately use repository content. Project is intended for getting novels in a single file and NOT for copying novels from one website to another.</p>
+    </section>
+
+    <section>
+      <h2>Overview</h2>
+      <p>
+        The index page provides control over the web scraping process through three primary actions:
+      </p>
+      <ol>
+        <li>
+          <strong>Create Request</strong> — Submit a URL and the number of chapters to scrape. You must also choose an output file extension. Available extensions indicate whether they support text and/or images. On submission, a request is created and you receive a Request ID. Better save it but it will as well be saved in cookies and shown at the bottom of the page.
+        </li>
+        <li>
+          <strong>Add Website</strong> — Suggest a new website to be supported by submitting its URL. This does not start scraping, it queues your suggestion for future support.
+        </li>
+        <li>
+          <strong>Download Result</strong> — Provide the Request ID from a completed job to download the results as a ZIP archive. You will get logs and result files there. After request is finished it will be available for repeated download for a fixed time.
+        </li>
+      </ol>
+      <p>
+        The page also shows a list of pending requests. They are saved in cookies. They do not indicate whether request is finished or not - you need to make a request to find out. If you request some RID and it is successful or irredeemable, entry is removed.
+      </p>
+    </section>
+
+    <section>
+      <h2>Supported Websites</h2>
+      <p>The following websites are currently recognized by the scraper (some may actually not work - you can locally fix or report on github):</p>
+      <ul>
+        {% for site in recognized_websites %}
+        <li>{{ site }}</li>
+        {% endfor %}
+      </ul>
+      {% if recognized_websites|length == 0 %}
+      <p>No websites are currently configured.</p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

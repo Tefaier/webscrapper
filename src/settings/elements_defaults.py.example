@@ -1,0 +1,9 @@
+LINK_INFO_PART = ["src", "data-src", "data-breeze"]  # what parts to check inside link tag for the link text
+MIN_EXPECTED_PARAGRAPHS = 3  # minimum number of elements to consider parsing successful
+MIN_EXPECTED_CHARS = 1000  # minimum number of characters to consider parsing successful
+EXPECTED_LANGUAGES = ["eng"]  # expected language, used for recovering jammed text with pytesseract
+FILTER_NO_MEANING = True  # whether to filter empty paragraphs (no letter, digit symbols)
+SPACES_NORMALIZATION = True  # whether to force spaces to not repeat + no trailing
+SYMBOLS_CONVERTION = True  # whether to convert html symbols
+REPEAT_TOLERANCE = 0  # symbols tolerance at sides when determining whether paragraph is a copy of the previous one
+IMAGE_GET_TIMEOUT_SECONDS = 2  # timeout when getting image content

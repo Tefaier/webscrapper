@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebScrapper Control</title>
+  <link rel="stylesheet" href="/static/index.css" />
+  <link rel="icon" type="image/x-icon" href="/static/webscrapper_v2.ico">
+</head>
+
+<body>
+  <header>
+    <nav class="top-nav">
+      <a href="/" class="nav-link active">Home</a>
+      <a href="/documentation" class="nav-link">Documentation</a>
+    </nav>
+  </header>
+  <h1>WebScrapper Control Panel</h1>
+
+  <section>
+    <h2>Create Request</h2>
+    <form id="create-request-form">
+      <label for="cr-url">URL</label>
+      <input id="cr-url" type="text" name="url" required placeholder="https://example.com/" />
+      <label for="cr-chapters">Chapters</label>
+      <input id="cr-chapters" type="number" name="chapters" min="1" value="1" required />
+      <label for="cr-ext">File extension</label>
+      <select id="cr-ext" name="file_extension" required>
+        {% for ext in file_extensions %}
+        <option value="{{ ext.name }}">
+          {{ ext.name }}
+          {% if ext.text_support %} [Text]{% endif %}
+          {% if ext.image_support %} [Images]{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+
+      <div class="mt"><button type="submit">Create</button></div>
+      <div id="cr-msg" class="msg" hidden></div>
+    </form>
+  </section>
+
+  <section>
+    <h2>Add Website</h2>
+    <form id="add-website-form">
+      <label for="aw-url">Website URL</label>
+      <input id="aw-url" type="text" name="url" required placeholder="https://example.com/" />
+      <div class="mt"><button type="submit">Add</button></div>
+      <div id="aw-msg" class="msg" hidden></div>
+    </form>
+  </section>
+
+  <section>
+    <h2>Download Result</h2>
+    <form id="download-form">
+      <label for="dl-rid">Request Request ID</label>
+      <input id="dl-rid" type="text" name="req_id" required placeholder="paste request id" />
+      <div class="mt"><button type="submit">Download</button></div>
+      <div id="dl-msg" class="msg" hidden></div>
+    </form>
+  </section>
+
+  <section>
+    <h2>Pending Requests</h2>
+    <ul id="pending-requests">
+    </ul>
+  </section>
+
+  <script src="/static/index.js" defer></script>
+</body>
+
+</html>

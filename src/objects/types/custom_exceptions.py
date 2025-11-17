@@ -31,3 +31,11 @@ class NextChapterNotReachedException(Exception):
 class LinkException(Exception):
     def __init__(self, message):
         self.message = message
+
+class DBOverlapException(Exception):
+    def __init__(self, message):
+        self.message = message
+
+class InvalidUrlException(Exception):
+    def __init__(self, message):
+        self.message = message

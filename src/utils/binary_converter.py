@@ -28,6 +28,6 @@ def convert_binary(data, into: str):
             return data
         elif not base64_check(data):  # bytes but not in base 64
             data = base64.b64encode(data)
-        return data.decode()
+        return data.decode('utf-8')
     else:
         return data
