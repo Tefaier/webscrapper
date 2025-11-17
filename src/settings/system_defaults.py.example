@@ -9,7 +9,6 @@ TESSERACT_PATH = os.environ["TESSERACT_PATH"]  # path to tesseract
 OUTPUT_FILE_DIRECTORY = os.environ["OUTPUT_FILE_DIRECTORY"]
 CHROME_DIRECTORY = os.environ["CHROME_DIRECTORY"]
 CHROME_PROFILE = "Default"  # UNSUPPORTED - Default will be forcefully used
-TEMP_FOLDER = os.environ["TEMP_FOLDER"]
 DB_PATH = os.environ["DB_PATH"]
 WINDOW_W_MIN = int(os.environ["WINDOW_W_MIN"])
 WINDOW_W_MAX = int(os.environ["WINDOW_W_MAX"])
