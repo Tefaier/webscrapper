@@ -42,7 +42,7 @@ link_websites: Dict[str, Callable[[ExtendedFactory], Any]] = {}
 def write_new_settings():
     # tl.rulate.ru
     website = "tl.rulate.ru"
-    recognized_websites.append(website)
+    # recognized_websites.append(website)
     block_screen_websites[website] = lambda factory: (
         factory.finder(
             f"{FINDER_NAME}_block_0", ByAttributesFinder, search_types=["button"], search_limits={"name": "ok"}
