@@ -21,6 +21,7 @@ function showPendingRequests() {
 		if (elements.length > 0) {
 				elements.forEach(request => {
 						const li = document.createElement('li');
+						li.setAttribute('onclick', 'copySelf(this)');
 						li.textContent = request;
 						list.appendChild(li);
 				});
@@ -136,3 +137,18 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+function copySelf(element) {
+  const textToCopy = element.textContent;
+
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    const originalText = element.textContent;
+    element.textContent = 'Copied!';
+
+    setTimeout(() => {
+      element.textContent = originalText;
+    }, 500);
+  }).catch(err => {
+    console.error('Failed to copy: ', err);
+  });
+}

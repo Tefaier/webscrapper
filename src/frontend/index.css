@@ -55,3 +55,17 @@ code { background: #f6f8fa; padding: .1rem .25rem; }
   outline: 2px solid #0056b3;
   outline-offset: 2px;
 }
+.requests { margin-bottom: 2rem; padding: 1rem; border: 1px solid #ddd; border-radius: 6px; }
+.requests li {
+  list-style: none;
+  padding: 10px 15px;
+  margin: 5px 0;
+  border-left: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+.requests li:hover {
+  background-color: #e3f2fd;
+  border-left-color: #2196f3;
+  transform: translateX(5px);
+  cursor: pointer;
+}
