@@ -8,7 +8,7 @@ from dto.models import ParseRequest, AddWebsiteRequest, DownloadResultRequest
 
 from database import db
 from objects.types.custom_exceptions import CommandException, DBOverlapException, InvalidUrlException
-from settings.system_defaults import FINISHED_TASKS_LIFETIME, OUTPUT_FILE_DIRECTORY
+from settings.system_defaults import FINISHED_TASKS_LIFETIME, OUTPUT_FILE_DIRECTORY, DEV_MODE
 import zipfile
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -89,6 +89,8 @@ def download_result(query: DownloadResultRequest = Depends()):
         with zipfile.ZipFile(mem, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
             for root, dirs, files in os.walk(directory):
                 for file in files:
+                    if not DEV_MODE and file == "log.txt":
+                        continue
                     file_path = os.path.join(root, file)
                     arcname = os.path.relpath(file_path, directory)
                     zf.write(file_path, arcname=arcname)
