@@ -11,13 +11,13 @@ class DriverHandler:
     def __init__(
         self,
         chrome_directory: str = CHROME_DIRECTORY,
-        chrome_profile: str = CHROME_PROFILE,
+        chrome_undetected_directory: str = CHROME_UNDETECTED_DIRECTORY,
         undetected_method: bool = UNDETECTED_METHOD,
         window_width: int = WINDOW_WIDTH,
         window_height: int = WINDOW_HEIGHT,
     ):
         self.chrome_directory = chrome_directory
-        self.chrome_profile = chrome_profile  # is not supported - Default will be forcefully used
+        self.chrome_undetected_directory = chrome_undetected_directory
         self.undetected = undetected_method
         self.window_width = min(WINDOW_W_MAX, max(WINDOW_W_MIN, window_width))
         self.window_height = min(WINDOW_H_MAX, max(WINDOW_H_MIN, window_height))
@@ -42,15 +42,20 @@ class DriverHandler:
         return driver
 
     def _undetected(self) -> WebDriver:
-        return Driver(uc=True, headless=True, **self._build_default_settings())
+        return Driver(
+            uc=False,
+            headless=True,
+            user_data_dir=self.chrome_undetected_directory or "/tmp/.google_chrome_undetected",
+            **self._build_default_settings()
+        )
 
     def _usual(self) -> WebDriver:
-        if self.chrome_directory:
-            return Driver(
-                uc=False, headless=True, user_data_dir=self.chrome_directory, **self._build_default_settings()
-            )
-        else:
-            return Driver(uc=False, headless=True, **self._build_default_settings())
+        return Driver(
+            uc=False,
+            headless=True,
+            user_data_dir=self.chrome_directory or "/tmp/.google_chrome",
+            **self._build_default_settings()
+        )
 
     def _build_default_settings(self) -> Dict[str, str]:
         return {
