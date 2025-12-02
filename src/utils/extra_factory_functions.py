@@ -12,7 +12,7 @@ def simple_title(
 ) -> ExtendedFactory:
     return factory.finder(
         f"{FINDER_NAME}_title_0", ByAttributesFinder, search_types=types or ["title"], search_limits=limits or {}
-    ).collector(f"{COLLECTOR_NAME}_title", FieldTypes.Text, [f"{FINDER_NAME}_title_0"])
+    ).collector(f"{COLLECTOR_NAME}_title", FieldTypes.Text, [f"{FINDER_NAME}_title_0"], DEFAULT_POST_PROCESSINGS)
 
 
 def simple_text(

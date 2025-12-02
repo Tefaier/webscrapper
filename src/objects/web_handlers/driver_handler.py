@@ -43,7 +43,7 @@ class DriverHandler:
 
     def _undetected(self) -> WebDriver:
         return Driver(
-            uc=False,
+            uc=True,
             headless=True,
             user_data_dir=self.chrome_undetected_directory or "/tmp/.google_chrome_undetected",
             **self._build_default_settings()
@@ -66,4 +66,5 @@ class DriverHandler:
             "locale_code": "en",
             "d_width": self.window_width,
             "d_height": self.window_height,
+            "chromium_arg": "--no-sandbox,--disable-dev-shm-usage",
         }

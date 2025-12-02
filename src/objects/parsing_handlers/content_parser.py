@@ -79,9 +79,9 @@ class ContentParser:
                     r = requests.get(url, timeout=REQUEST_GET_TIMEOUT_SECONDS)
                     try:
                         html = r.content.decode("utf8")
-                    except Exception:
+                    except Exception as e:
                         html = r.text
-                except Exception:
+                except Exception as e:
                     html = ""
                 self._last_request_url = url
                 self._last_request_content = html

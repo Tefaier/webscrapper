@@ -178,6 +178,37 @@ def write_new_settings():
     )
     reload_websites[website] = {"sleep_before_process": True, "sleep_before_process_seconds": 5}
 
+    # novelbin.com
+    website = "novelbin.com"
+    recognized_websites.append(website)
+    chrome_websites.append(website)
+    chrome_undetected_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h2"]),
+        simple_text(factory, ["div"], {"id": "chr-content"}, ["p"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: simple_link(factory, link_type=["a"], link_limit={"id": "next_chap"})
+
+    # ficbook.net
+    website = "ficbook.net"
+    recognized_websites.append(website)
+    chrome_websites.append(website)
+    chrome_undetected_websites.append(website)
+    content_websites[website] = lambda factory: (
+        factory.finder(f"{FINDER_NAME}_title_0", ByAttributesFinder, search_types=["h2"])
+        .post_processing(f"{POST_PROCESSING_NAME}_title_0", ExactElementTaker, take_at_index=0)
+        .collector(
+            f"{COLLECTOR_NAME}_title",
+            FieldTypes.Text,
+            [f"{FINDER_NAME}_title_0"],
+            [f"{POST_PROCESSING_NAME}_title_0"] + DEFAULT_POST_PROCESSINGS,
+        ),
+        split_text(factory, ["div"], {"id": "content"}, ["div"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: simple_link(factory, link_type=["a"], link_limit={"class": "btn-next"})
+
 
 write_new_settings()
 
@@ -237,7 +268,6 @@ active_process_dicts = {
     "ckandawrites.online": {},
     "knoxt.space": {},
     "renovels.org": {"chrome": True, "wait": True},
-    "novelbin.com": {"chrome": True},
     "wuxia.click": {"chrome": True, "sleep": True},
     "shanghaifantasy.com": {"chrome": True, "wait": True},
     "novelbin.lanovels.net": {"chrome": True},
@@ -676,15 +706,6 @@ active_parser_dicts = {
         "title_h": "h1",
         "link_h": "button",
         "link_l": {"class": "items-center"},
-        "link_container": "div",
-        "link_p": -1,
-    },
-    "novelbin.com": {
-        "text_h": "p",
-        "text_l": {"id": "chr-content"},
-        "title_h": "h4",
-        "link_h": "a",
-        "link_l": {"id": "chr-nav-top"},
         "link_container": "div",
         "link_p": -1,
     },
