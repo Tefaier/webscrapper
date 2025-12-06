@@ -21,6 +21,7 @@ def simple_text(
     holder_limit: Dict[str, str] = None,
     text_type: List[str] = ["p"],
     text_limit: Dict[str, str] = None,
+    extra_post_processors: Optional[List[str]] = None,
 ) -> ExtendedFactory:
     return (
         factory.finder(
@@ -34,7 +35,7 @@ def simple_text(
             f"{COLLECTOR_NAME}_text",
             FieldTypes.Text,
             [f"{FINDER_NAME}_text_0", f"{FINDER_NAME}_text_1"],
-            DEFAULT_POST_PROCESSINGS,
+            (extra_post_processors or []) + DEFAULT_POST_PROCESSINGS,
         )
     )
 
@@ -94,7 +95,7 @@ def simple_link(
     if link_exact:
         name = f"{POST_PROCESSING_NAME}_link_{len(posts)}"
         posts.append(name)
-        factory.post_processing(name, ExactElementTaker, take_at_index=-1)
+        factory.post_processing(name, ExactElementTaker, take_at_index=link_exact)
     return factory.link_collector(finders, posts)
 
 

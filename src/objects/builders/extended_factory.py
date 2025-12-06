@@ -8,6 +8,7 @@ from objects.file_handlers.output_writers import TxtWriter, HtmlWriter, DocxWrit
 from objects.parsing_handlers.content_parser import ContentParser
 from objects.parsing_handlers.parsing_process import ParsingProcess
 from objects.types.custom_exceptions import UnsupportedArgumentsException
+from objects.types.driver_types import DriverTypes
 from objects.types.file_extensions import FileExtensions
 from objects.web_handlers.driver_handler import DriverHandler
 from objects.web_handlers.link_handler import LinkHandler
@@ -94,14 +95,14 @@ class ExtendedFactory:
         return self
 
     # -------- driver / selenium --------
-    def selenium(self, is_undetected: bool, window_w: Optional[int] = None, window_h: Optional[int] = None) -> Self:
+    def selenium(self, type: DriverTypes, window_w: Optional[int] = None, window_h: Optional[int] = None) -> Self:
         self._driver_handler_name = f"${DRIVER_HANDLER_NAME}"
         self.builder.register(DRIVER_HANDLER_NAME, DriverHandler)
         self.builder.add_config(
             DRIVER_HANDLER_NAME,
             _clear_nones(
                 {
-                    "undetected_method": is_undetected,
+                    "type": type,
                     "window_width": window_w,
                     "window_height": window_h,
                 }

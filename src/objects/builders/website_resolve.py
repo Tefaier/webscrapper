@@ -2,9 +2,10 @@ from typing import Callable, Any
 
 from dto.request import Request
 from objects.elements.elements_finders import ByTextFinder, ByCssSelectorFinder
-from objects.elements.elements_post_processings import ExcludeByCollectorFilter
+from objects.elements.elements_post_processings import ExcludeByCollectorFilter, SidesCutFiltering
 from objects.parsing_handlers.parsing_process import ParsingProcess
 from objects.types.custom_exceptions import CommandException
+from objects.types.driver_types import DriverTypes
 from objects.types.order_stategy import OrderStrategy
 from objects.web_handlers.block_screen_handler import ButtonClickHandler
 from objects.web_handlers.scroll_strategy import BottomScroll
@@ -15,7 +16,7 @@ def resolve_website(website: str, request: Request) -> ParsingProcess:
     factory = ExtendedFactory(request.request_id)
     factory.output(request.file_extension)
     if website in chrome_websites:
-        factory.selenium(website in chrome_undetected_websites)
+        factory.selenium(chrome_websites[website])
     if website in scroll_websites.keys():
         factory.scroll(BottomScroll, **scroll_websites[website])
     if website in block_screen_websites:
@@ -30,8 +31,7 @@ def resolve_website(website: str, request: Request) -> ParsingProcess:
 
 
 recognized_websites: List[str] = []
-chrome_websites: List[str] = []
-chrome_undetected_websites: List[str] = []
+chrome_websites: Dict[str, DriverTypes] = {}
 scroll_websites: Dict[str, Dict[str, Any]] = {}
 block_screen_websites: Dict[str, Callable[[ExtendedFactory], Any]] = {}
 reload_websites: Dict[str, Dict[str, Any]] = {}
@@ -64,8 +64,7 @@ def write_new_settings():
     # www.novelhall.com
     website = "www.novelhall.com"
     recognized_websites.append(website)
-    chrome_websites.append(website)
-    chrome_undetected_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
     content_websites[website] = lambda factory: (
         simple_title(factory, ["h1"]),
         split_text(factory, ["div"], {"class": "entry-content"}, ["br"]),
@@ -76,26 +75,23 @@ def write_new_settings():
     # ru.novelcool.com
     website = "ru.novelcool.com"
     recognized_websites.append(website)
-    chrome_websites.append(website)
-    chrome_undetected_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
     content_websites[website] = lambda factory: (
-        simple_title(factory, ["h2"])
-        .finder(
-            f"{FINDER_NAME}_text_0",
+        simple_title(factory, ["h2"]),
+        factory.finder(
+            f"{FINDER_NAME}_exclude_0",
             ByAttributesFinder,
-            search_types=["div"],
-            search_limits={"class": "chapter-reading-section"},
-        )
-        .finder(f"{FINDER_NAME}_text_1", ByAttributesFinder, search_types=["p"])
-        .finder(
-            f"{FINDER_NAME}_text_2", ByAttributesFinder, search_types=["p"], search_limits={"class": "chapter-end-mark"}
-        )
-        .post_processing(f"{POST_PROCESSING_NAME}_text_0", ExcludeByCollectorFilter, finder=f"${FINDER_NAME}_text_2")
-        .collector(
-            f"{COLLECTOR_NAME}_text",
-            FieldTypes.Text,
-            [f"{FINDER_NAME}_text_0", f"{FINDER_NAME}_text_1"],
-            [f"{POST_PROCESSING_NAME}_text_0"] + DEFAULT_POST_PROCESSINGS,
+            search_types=["p"],
+            search_limits={"class": "chapter-end-mark"},
+        ).post_processing(
+            f"{POST_PROCESSING_NAME}_text_0", ExcludeByCollectorFilter, finder=f"${FINDER_NAME}_exclude_0"
+        ),
+        simple_text(
+            factory,
+            ["div"],
+            {"class": "chapter-reading-section"},
+            ["p"],
+            extra_post_processors=[f"{POST_PROCESSING_NAME}_text_0"],
         ),
         orchestra(factory),
     )
@@ -113,8 +109,7 @@ def write_new_settings():
     # www.novelcool.com
     website = "www.novelcool.com"
     recognized_websites.append(website)
-    chrome_websites.append(website)
-    chrome_undetected_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
     content_websites[website] = content_websites["ru.novelcool.com"]
     link_websites[website] = lambda factory: (
         factory.finder(
@@ -130,7 +125,7 @@ def write_new_settings():
     # betwixtedbutterfly.com
     website = "betwixtedbutterfly.com"
     recognized_websites.append(website)
-    chrome_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
     content_websites[website] = lambda factory: (
         simple_title(factory, ["h1"], {"class": "post-title"}),
         simple_text(factory, ["div"], {"data-elementor-type": "wp-post"}, ["p"]),
@@ -160,7 +155,7 @@ def write_new_settings():
     # ranobelib.me
     website = "ranobelib.me"
     recognized_websites.append(website)
-    chrome_websites.append(website)
+    chrome_websites[website] = DriverTypes.Regular
     content_websites[website] = lambda factory: (
         simple_title(factory, ["h1"]),
         simple_text(factory, ["div"], {"class": "text-content"}),
@@ -181,8 +176,7 @@ def write_new_settings():
     # novelbin.com
     website = "novelbin.com"
     recognized_websites.append(website)
-    chrome_websites.append(website)
-    chrome_undetected_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
     content_websites[website] = lambda factory: (
         simple_title(factory, ["h2"]),
         simple_text(factory, ["div"], {"id": "chr-content"}, ["p"]),
@@ -193,8 +187,7 @@ def write_new_settings():
     # ficbook.net
     website = "ficbook.net"
     recognized_websites.append(website)
-    chrome_websites.append(website)
-    chrome_undetected_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
     content_websites[website] = lambda factory: (
         factory.finder(f"{FINDER_NAME}_title_0", ByAttributesFinder, search_types=["h2"])
         .post_processing(f"{POST_PROCESSING_NAME}_title_0", ExactElementTaker, take_at_index=0)
@@ -208,6 +201,39 @@ def write_new_settings():
         orchestra(factory),
     )
     link_websites[website] = lambda factory: simple_link(factory, link_type=["a"], link_limit={"class": "btn-next"})
+
+    # 98novels.com
+    website = "98novels.com"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"]),
+        factory.finder(
+            f"{FINDER_NAME}_exclude_0",
+            ByAttributesFinder,
+            search_types=["p"],
+            search_limits={"class": "has-text-align-center"},
+        ),
+        factory.post_processing(
+            f"{POST_PROCESSING_NAME}_exclude_0", ExcludeByCollectorFilter, finder=f"${FINDER_NAME}_exclude_0"
+        ),
+        factory.post_processing(f"{POST_PROCESSING_NAME}_cut_0", SidesCutFiltering, cut_from_ending=1),
+        factory.post_processing(f"{POST_PROCESSING_NAME}_split_0", SplitTagContentByInnerTags, split_tag_names=["br"]),
+        simple_text(
+            factory,
+            ["div"],
+            {"class": "kenta-article-content"},
+            ["p"],
+            extra_post_processors=[
+                f"{POST_PROCESSING_NAME}_exclude_0",
+                f"{POST_PROCESSING_NAME}_cut_0",
+                f"{POST_PROCESSING_NAME}_split_0",
+            ],
+        ),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: simple_link(
+        factory, holder_type=["div"], holder_limit={"class": "nav-buttons"}, link_type=["a"], link_exact=-1
+    )
 
 
 write_new_settings()
@@ -883,10 +909,9 @@ active_parser_dicts = {
 for _site, _pcfg in active_process_dicts.items():
     if _pcfg.get("chrome"):
         if _site not in chrome_websites:
-            chrome_websites.append(_site)
+            chrome_websites[_site] = DriverTypes.Regular
     if _pcfg.get("chrome_undetected"):
-        if _site not in chrome_undetected_websites:
-            chrome_undetected_websites.append(_site)
+        chrome_websites[_site] = DriverTypes.Undetected
     if _pcfg.get("scroll"):
         scroll_websites.setdefault(_site, {})
     if _pcfg.get("wait") or _pcfg.get("sleep"):

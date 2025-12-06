@@ -3,8 +3,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from bs4 import BeautifulSoup
-from selenium.webdriver.chrome.webdriver import WebDriver
+
+from objects.web_handlers.driver_handler import DriverHandler
+
 
 class WebHandler(ABC):
     @abstractmethod
-    def handle(self, driver: WebDriver, soup: BeautifulSoup) -> None: ...
+    def handle(self, driver: DriverHandler, soup: BeautifulSoup) -> None: ...
