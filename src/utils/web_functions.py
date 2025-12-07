@@ -41,7 +41,10 @@ def unwrap_xpath(driver: WebDriver, xpath):
 def extract_all_styles(soup: BeautifulSoup) -> Dict[str, Dict[str, str]]:
     css_classes = {}
     for styles in soup.select("style"):
-        css = cssutils.parseString(styles.encode_contents(), validate=False)
+        try:
+            css = cssutils.parseString(styles.encode_contents(), validate=False)
+        except Exception as e:
+            continue
         for rule in css:
             if rule.type == rule.STYLE_RULE:
                 style = rule.selectorText

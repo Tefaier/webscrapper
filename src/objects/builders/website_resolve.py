@@ -54,7 +54,7 @@ def write_new_settings():
     recognized_websites.append(website)
     content_websites[website] = lambda factory: (
         simple_title(factory, ["h1"]),
-        simple_text(factory, ["section"], {"id": "entry-content"}),
+        simple_text(factory, ["section"], {"id": "chapter-content"}),
         orchestra(factory),
     )
     link_websites[website] = lambda factory: simple_link(
