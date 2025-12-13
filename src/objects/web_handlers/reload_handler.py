@@ -109,7 +109,10 @@ class ReloadHandler:
     def _perform_refresh(self, parser: ContentParser, attempt: int):
         if self.driver_handler is None:
             return
-        if attempt < self.max_attempts:
+        if attempt == 0:
+            self.logger.debug("Trying to solve captcha")
+            self.driver_handler.try_solve_captcha()
+        elif attempt < self.max_attempts:
             self.logger.debug("Deleting cookies and refresh")
             self.driver_handler.reload()
         else:

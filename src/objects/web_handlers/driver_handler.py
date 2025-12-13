@@ -6,7 +6,7 @@ from seleniumbase.undetected import WebElement
 from seleniumbase.undetected.cdp_driver.element import Element
 from typing_extensions import Self
 
-from seleniumbase import Driver, BaseCase, SB
+from seleniumbase import Driver
 from seleniumbase.core.browser_launcher import uc_open_with_reconnect, uc_open, uc_gui_click_captcha
 from seleniumbase.core.sb_driver import DriverMethods
 from typing_extensions import override
@@ -73,6 +73,13 @@ class DriverHandler(ABC):
 
     def get_content(self) -> str:
         return self.driver.get_page_source()
+
+    def try_solve_captcha(self) -> Self:
+        if self.driver.is_uc_mode_active():
+            uc_gui_click_captcha(self.driver)
+        else:
+            self.reload()
+        return self
 
     def reload(self) -> Self:
         self.driver.refresh()
@@ -157,13 +164,21 @@ class UndetectedDriverHandler(DriverHandler):
 
     @override
     def _create_driver(self) -> DriverMethods:
-        driver = Driver(
-            uc=True,
-            headless=True,
-            incognito=True,
-            user_data_dir=self.chrome_undetected_directory or "/tmp/.google_chrome_undetected",
-            **self._build_default_settings(),
-        )
+        if HEADLESS_GUI_AVAILABLE or ALLWAYS_HEADLESS:
+            driver = Driver(
+                uc=True,
+                headless=True,
+                incognito=True,
+                user_data_dir=self.chrome_undetected_directory or "/tmp/.google_chrome_undetected",
+                **self._build_default_settings(),
+            )
+        else:
+            driver = Driver(
+                uc=True,
+                incognito=True,
+                user_data_dir=self.chrome_undetected_directory or "/tmp/.google_chrome_undetected",
+                **self._build_default_settings(),
+            )
         driver.set_window_size(self.window_width, self.window_height)
         return driver
 
@@ -173,7 +188,8 @@ class UndetectedDriverHandler(DriverHandler):
             return self
         if self.first_open:
             uc_open_with_reconnect(self.driver, url)
-            uc_gui_click_captcha(self.driver)
+            if HEADLESS_GUI_AVAILABLE or not ALLWAYS_HEADLESS:
+                uc_gui_click_captcha(self.driver)
         else:
             uc_open(self.driver, url)
         self.first_open = False
@@ -203,13 +219,21 @@ class CdpDriverHandler(DriverHandler):
 
     @override
     def _create_driver(self) -> DriverMethods:
-        driver = Driver(
-            uc=True,
-            headless=True,
-            incognito=True,
-            user_data_dir=self.chrome_undetected_directory or "/tmp/.google_chrome_undetected",
-            **self._build_default_settings(),
-        )
+        if HEADLESS_GUI_AVAILABLE or ALLWAYS_HEADLESS:
+            driver = Driver(
+                uc=True,
+                headless=True,
+                incognito=True,
+                user_data_dir=self.chrome_undetected_directory or "/tmp/.google_chrome_undetected",
+                **self._build_default_settings(),
+            )
+        else:
+            driver = Driver(
+                uc=True,
+                incognito=True,
+                user_data_dir=self.chrome_undetected_directory or "/tmp/.google_chrome_undetected",
+                **self._build_default_settings(),
+            )
         driver.set_window_size(self.window_width, self.window_height)
         return driver
 
@@ -219,7 +243,8 @@ class CdpDriverHandler(DriverHandler):
             return self
         if self.first_open:
             self.driver.activate_cdp_mode(url)
-            self.driver.uc_gui_click_captcha()
+            if HEADLESS_GUI_AVAILABLE or not ALLWAYS_HEADLESS:
+                self.driver.uc_gui_click_captcha()
         else:
             self.driver.cdp.open(url)
         self.first_open = False
