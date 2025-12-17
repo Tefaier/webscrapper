@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
         )
         scheduler.add_job(
             clear_expired_requests,
-            trigger=IntervalTrigger(hours=1),
+            trigger=IntervalTrigger(minutes=1),
             id="clear_expired_requests",
             replace_existing=True,
         )

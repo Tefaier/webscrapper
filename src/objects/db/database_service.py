@@ -10,7 +10,7 @@ from dto.add_website import AddWebsite
 from dto.request import Request
 from objects.db.add_website_database import AddWebsiteDatabase
 from objects.db.request_database import RequestDatabase
-from settings.system_defaults import FINISHED_TASKS_LIFETIME, MAX_CHAPTERS_COUNT, MAX_NEW_WEBSITE_REQUESTS
+from settings.system_defaults import MAX_CHAPTERS_COUNT, MAX_NEW_WEBSITE_REQUESTS
 from objects.builders.website_resolve import recognized_websites
 
 
@@ -55,7 +55,7 @@ class DatabaseService:
         """Get request by request_id or None"""
         return self.request_dao.get_request_by_request_id(rid)
 
-    def create_request(self, url: str, chapters: int, file_extension: str) -> int:
+    def create_request(self, url: str, chapters: int, file_extension: str, lifetime_seconds: int) -> int:
         """Create a new request and return its ID"""
         if not validators.url(url):  # type: ignore
             raise InvalidUrlException(f"URL is invalid {url}")
@@ -69,7 +69,9 @@ class DatabaseService:
             raise CommandException(
                 f"You can at most request {MAX_CHAPTERS_COUNT} chapters but {chapters} were requested"
             )
-        return self.request_dao.create_request(url, chapters, file_extension)
+        if lifetime_seconds <= 0:
+            raise CommandException(f"lifetime_seconds can't be zero or negative, given value is {lifetime_seconds}")
+        return self.request_dao.create_request(url, chapters, file_extension, lifetime_seconds)
 
     def complete_processing(self, id: int, details: Dict[str, Any]):
         """Mark a request as completed with results"""
@@ -85,4 +87,4 @@ class DatabaseService:
 
     def get_expired_requests(self) -> List[int]:
         """Get requests that are finished and old enough to be set as expired"""
-        return self.request_dao.claim_expired_requests(FINISHED_TASKS_LIFETIME)
+        return self.request_dao.claim_expired_requests()

@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -18,7 +19,8 @@ MAX_NEW_WEBSITE_REQUESTS = os.environ["MAX_NEW_WEBSITE_REQUESTS"]
 MAX_ACTIVE_PROCESSES = int(os.environ["MAX_ACTIVE_PROCESSES"])
 MAX_CHAPTERS_COUNT = int(os.environ["MAX_CHAPTERS_COUNT"])
 TASKS_EXECUTION_TIMEOUT_SECONDS = int(os.environ["TASKS_EXECUTION_TIMEOUT_SECONDS"])
-FINISHED_TASKS_LIFETIME = timedelta(seconds=int(os.environ["FINISHED_TASKS_LIFETIME_SECONDS"]))
+FINISHED_TASKS_DEFAULT_LIFETIME_SECONDS = timedelta(seconds=int(os.environ["FINISHED_TASKS_DEFAULT_LIFETIME_SECONDS"]))
+FINISHED_TASKS_LIFETIME_LIMIT_SECONDS = timedelta(seconds=int(os.environ["FINISHED_TASKS_LIFETIME_LIMIT_SECONDS"]))
 APPLICATION_LOGS_PATH = os.environ["APPLICATION_LOGS_PATH"]
 DEV_MODE = os.environ["DEV_MODE"] == "True"
 HEADLESS_GUI_AVAILABLE = sys.platform in ["linux"]
