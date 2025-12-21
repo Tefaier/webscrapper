@@ -8,3 +8,4 @@ NEWLINE_NORMALIZATION = True  # whether to force new lines (/n) to not repeat
 SYMBOLS_CONVERTION = True  # whether to convert html symbols
 REPEAT_TOLERANCE = 0  # symbols tolerance at sides when determining whether paragraph is a copy of the previous one
 IMAGE_GET_TIMEOUT_SECONDS = 2  # timeout when getting image content
+DEFAULT_CACHE_SIZE = 5  # number of requests to cache in finders

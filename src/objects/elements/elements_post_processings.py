@@ -6,6 +6,7 @@ from selenium.webdriver.chrome.webdriver import WebDriver
 from objects.elements.elements_finders import ElementsFinder
 from objects.file_handlers.log_writer import LogWriter
 from objects.types.custom_exceptions import UnsupportedArgumentsException, TargetNotFoundException
+from objects.web_handlers.driver_handler import DriverHandler
 from settings.elements_defaults import (
     FILTER_NO_MEANING,
     SPACES_NORMALIZATION,
@@ -94,19 +95,19 @@ class JammedTextConverter(ElementsPostProcessing):
         self,
         log_writer: LogWriter,
         jammed_finder: ElementsFinder = None,
-        driver: WebDriver = None,
-        expected_languages: List[str] = EXPECTED_LANGUAGES,
+        driver_handler: DriverHandler = None,
+        expected_languages: str = EXPECTED_LANGUAGES,
         try_fix_text: bool = True,
     ):
         super().__init__(log_writer)
-        self.driver = driver
+        self.driver_handler = driver_handler
         self.jammed_finder = jammed_finder
         self.expected_languages = expected_languages
         # self.jammed_classes = jammed_classes if jammed_classes is not None else ["jum", "jmbl"]
         self.fix = try_fix_text
 
     def process(self, soup: BeautifulSoup, elements: List[PageElement]) -> List[PageElement]:
-        if self.driver is None:
+        if self.driver_handler is None:
             return elements
         return [
             (
@@ -118,7 +119,7 @@ class JammedTextConverter(ElementsPostProcessing):
         ]
 
     def _convert_to_text(self, element: Tag) -> str:
-        result = take_element_viewed_content(self.driver, self.expected_languages, element)
+        result = take_element_viewed_content(self.driver_handler, self.expected_languages, element)
         self.logger.debug(f"Convertaion result: {result}")
         if self.fix:
             result = fix_bad_detections(result)
@@ -127,7 +128,14 @@ class JammedTextConverter(ElementsPostProcessing):
 
     def _check_element_is_jammed(self, soup: BeautifulSoup, element: PageElement) -> bool:
         if isinstance(element, Tag):
-            result = element.find("img") is not None or len(self.jammed_finder.find(soup, [element])) > 0
+            result = (
+                element.find("img") is not None
+                or len(
+                    list(filter(lambda tag: id(tag) == id(element), self.jammed_finder.find(soup, [element.parent])))
+                )
+                > 0
+                or len(self.jammed_finder.find(soup, [element])) > 0
+            )
         else:
             result = False
         if result:

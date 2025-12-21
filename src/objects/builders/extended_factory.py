@@ -117,12 +117,16 @@ class ExtendedFactory:
             self.builder.add_config(OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.rid}/result.txt"})
         elif file_type == FileExtensions.HTML:
             self.builder.register(OUTPUT_WRITER_NAME, HtmlWriter)
-            self.builder.add_config(OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.rid}/result.html"})
+            self.builder.add_config(
+                OUTPUT_WRITER_NAME, {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.rid}/result.html"}
+            )
         elif file_type == FileExtensions.DOCX:
             self.builder.register(OUTPUT_WRITER_NAME, DocxWriter)
             self.builder.add_config(
                 OUTPUT_WRITER_NAME,
-                _clear_nones({"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.rid}/result.docx", "image_width": image_width}),
+                _clear_nones(
+                    {"full_path": f"{OUTPUT_FILE_DIRECTORY}/{self.rid}/result.docx", "image_width": image_width}
+                ),
             )
         else:
             raise UnsupportedArgumentsException(f"Unsupported file type: {file_type}")
@@ -136,7 +140,9 @@ class ExtendedFactory:
 
     def post_processing(self, name: str, cls: Type[ElementsPostProcessing], **cfg) -> Self:
         self.builder.register(name, cls)
-        self.builder.add_config(name, {"log_writer": f"${LOG_WRITER_NAME}", **cfg})
+        self.builder.add_config(
+            name, {"log_writer": f"${LOG_WRITER_NAME}", "driver_handler": self._driver_handler_name, **cfg}
+        )
         return self
 
     def collector(
@@ -162,7 +168,9 @@ class ExtendedFactory:
         self.builder.add_config(ORDERER_NAME, {"log_writer": f"${LOG_WRITER_NAME}", "strategy": strategy})
         return self
 
-    def orchestra(self, collectors: List[str], min_expected: Optional[int] = None, min_expected_text: Optional[int] = None) -> Self:
+    def orchestra(
+        self, collectors: List[str], min_expected: Optional[int] = None, min_expected_text: Optional[int] = None
+    ) -> Self:
         self._orchestra_called = True
         self.builder.add_config(
             ORCHESTRA_NAME,

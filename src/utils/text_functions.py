@@ -58,6 +58,7 @@ def fix_bad_detections(input: str) -> str:
     result = re.sub(r"(\W)(\wm )", r"\1I'm ", input)
     result = re.sub(r"\n+", "\n", result)
     result = result.replace("|", "I")
+    result = re.sub(r"\n(?=[a-z0-9])", " ", result)
     return result
 
 

@@ -1,8 +1,9 @@
+import re
 from typing import Callable, Any
 
 from dto.request import Request
 from objects.elements.elements_finders import ByTextFinder, ByCssSelectorFinder
-from objects.elements.elements_post_processings import ExcludeByCollectorFilter, SidesCutFiltering
+from objects.elements.elements_post_processings import ExcludeByCollectorFilter, SidesCutFiltering, JammedTextConverter
 from objects.parsing_handlers.parsing_process import ParsingProcess
 from objects.types.custom_exceptions import CommandException
 from objects.types.driver_types import DriverTypes
@@ -235,6 +236,37 @@ def write_new_settings():
         factory, holder_type=["div"], holder_limit={"class": "nav-buttons"}, link_type=["a"], link_exact=-1
     )
 
+    # chrysanthemumgarden.com
+    website = "chrysanthemumgarden.com"
+    recognized_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["title"]),
+        factory.finder(
+            f"{FINDER_NAME}_jam_0",
+            ByAttributesFinder,
+            search_types=["span"],
+            search_limits={"style": re.compile("font-family: \w+;")},
+        ),
+        factory.post_processing(
+            f"{POST_PROCESSING_NAME}_jam_0",
+            JammedTextConverter,
+            jammed_finder=f"${FINDER_NAME}_jam_0",
+            expected_languages="eng",
+        ),
+        simple_text(
+            factory,
+            ["div"],
+            {"id": "novel-content"},
+            ["p"],
+            extra_post_processors=[
+                f"{POST_PROCESSING_NAME}_jam_0",
+            ],
+        ),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: simple_link(factory, link_type=["a"], link_limit={"class": "nav-next"})
+
 
 write_new_settings()
 
@@ -265,7 +297,6 @@ active_process_dicts = {
     "danmeiextra.home.blog": {"chrome": False},
     "younettranslate.com": {"chrome": False},
     "strictlybromance.com": {"chrome": True},
-    "chrysanthemumgarden.com": {"chrome": True, "chrome_undetected": False, "wait": True},
     "kinkytranslations.com": {"chrome": False},
     "www.isotls.com": {"chrome": False},
     "www.royalroad.com": {"chrome": False},
@@ -471,19 +502,6 @@ active_parser_dicts = {
         "link_h": "a",
         "link_l": {"class": "wp-next-post-navi-next"},
         "link_by_div": True,
-    },
-    "chrysanthemumgarden.com": {
-        "left": 0,
-        "right": 0,
-        "text_h": "p",
-        "text_l": {"id": "novel-content"},
-        "text_intelligent": True,
-        "text_lang": ["eng"],
-        "title_h": "title",
-        "title_l": None,
-        "link_h": "a",
-        "link_l": {"class": "nav-next"},
-        "images": True,
     },
     "kinkytranslations.com": {
         "left": 1,

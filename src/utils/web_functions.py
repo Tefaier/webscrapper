@@ -1,15 +1,17 @@
 import base64
 import re
-from typing import Optional, Dict, List
+import time
+import uuid
+from typing import Optional, Dict
 
 import cssutils
 import cv2
 import numpy as np
 from bs4 import BeautifulSoup, PageElement, Tag, NavigableString
-from pytesseract import pytesseract
-from selenium.webdriver.chrome.webdriver import WebDriver
+import pytesseract
 from selenium.webdriver.common.by import By
 
+from objects.web_handlers.driver_handler import DriverHandler
 
 # from https://gist.github.com/ergoithz/6cf043e3fdedd1b94fcf
 def xpath_soup(element: PageElement) -> str:
@@ -27,7 +29,7 @@ def xpath_soup(element: PageElement) -> str:
     return "/%s" % "/".join(components)
 
 
-def unwrap_xpath(driver: WebDriver, xpath):
+def unwrap_xpath(driver: DriverHandler, xpath):
     parts = xpath.split("/")
     current_path = parts[0]
     for part in parts[1:]:
@@ -35,7 +37,7 @@ def unwrap_xpath(driver: WebDriver, xpath):
         # unwrap details
         if part.count("details") == 1:
             obj = driver.find_element(By.XPATH, current_path)
-            driver.execute_script("arguments[0].open = true;", obj)
+            driver.execute("arguments[0].open = true;", obj)
 
 
 def extract_all_styles(soup: BeautifulSoup) -> Dict[str, Dict[str, str]]:
@@ -78,16 +80,20 @@ def check_element_visibility(css_classes_info: Dict[str, Dict[str, str]], elemen
     return True
 
 
-def take_element_viewed_content(driver: WebDriver, expected_language: List[str], element: PageElement) -> str:
+def take_element_viewed_content(driver: DriverHandler, expected_language: str, element: PageElement) -> str:
     xpath = xpath_soup(element)
     unwrap_xpath(driver, xpath)
     obj = driver.find_element(By.XPATH, xpath)
-    driver.execute_script("arguments[0].scrollIntoView(true);", obj)
-
+    driver.execute("arguments[0].scrollIntoView(true);window.scrollBy(0, -10);", obj)
+    time.sleep(0.1)
     image_data = base64.b64decode(obj.screenshot_as_base64)
     # image_data = get_screen_of_element(driver, obj, 5, 5)
     img = cv2.imdecode(np.asarray(bytearray(image_data), dtype=np.uint8), cv2.IMREAD_COLOR)
+    img = cv2.copyMakeBorder(img, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=[int(v) for v in img[0][-1]])
+    # img = Image.open(io.BytesIO(image_data))
+
     result = pytesseract.image_to_string(img, lang=expected_language)
+
     return result
 
 

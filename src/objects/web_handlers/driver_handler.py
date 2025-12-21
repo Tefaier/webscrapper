@@ -53,11 +53,11 @@ class DriverHandler(ABC):
             "browser": "chrome",
             "use_auto_ext": False,
             "disable_features": "LensOverlay,TranslateUI,Translate,OptimizationGuideModelDownloading,OptimizationHintsFetching,OptimizationTargetPrediction,OptimizationHints",
-            "page_load_strategy": "eager",
+            "page_load_strategy": "none",
             "locale_code": "en",
             "d_width": self.window_width,
             "d_height": self.window_height,
-            "chromium_arg": "--no-sandbox,--disable-dev-shm-usage",
+            "chromium_arg": "--disable-dev-shm-usage",
         }
 
     def get_url(self) -> str:
@@ -75,7 +75,7 @@ class DriverHandler(ABC):
         return self.driver.get_page_source()
 
     def try_solve_captcha(self) -> Self:
-        if self.driver.is_uc_mode_active():
+        if self.driver.is_uc_mode_active() and (HEADLESS_GUI_AVAILABLE or not ALLWAYS_HEADLESS):
             uc_gui_click_captcha(self.driver)
         else:
             self.reload()
@@ -186,12 +186,7 @@ class UndetectedDriverHandler(DriverHandler):
     def get(self, url: str) -> Self:
         if self.driver.current_url == url:
             return self
-        if self.first_open:
-            uc_open_with_reconnect(self.driver, url)
-            if HEADLESS_GUI_AVAILABLE or not ALLWAYS_HEADLESS:
-                uc_gui_click_captcha(self.driver)
-        else:
-            uc_open(self.driver, url)
+        uc_open(self.driver, url)
         self.first_open = False
         return self
 
@@ -243,8 +238,6 @@ class CdpDriverHandler(DriverHandler):
             return self
         if self.first_open:
             self.driver.activate_cdp_mode(url)
-            if HEADLESS_GUI_AVAILABLE or not ALLWAYS_HEADLESS:
-                self.driver.uc_gui_click_captcha()
         else:
             self.driver.cdp.open(url)
         self.first_open = False
