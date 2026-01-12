@@ -1,8 +1,13 @@
-from typing import Optional, List, Dict
+import re
+from typing import Optional, List, Dict, Union
 
 from objects.builders.extended_factory import ExtendedFactory
-from objects.elements.elements_finders import ByAttributesFinder
-from objects.elements.elements_post_processings import ExactElementTaker, SplitTagContentByInnerTags
+from objects.elements.elements_finders import ByAttributesFinder, ByTextFinder
+from objects.elements.elements_post_processings import (
+    ExactElementTaker,
+    SplitTagContentByInnerTags,
+    ExcludeByCollectorFilter,
+)
 from objects.types.field_types import FieldTypes
 from settings.builders_defaults import *
 
@@ -104,3 +109,18 @@ def orchestra(factory: ExtendedFactory, with_images: bool = False) -> ExtendedFa
     if with_images:
         collectors += [f"{COLLECTOR_NAME}_image"]
     return factory.orchestra(collectors)
+
+
+def by_content_remove(
+    factory: ExtendedFactory, name_add: str, search_types: List[str], inner_context: Union[str, re.Pattern]
+) -> str:
+    factory.finder(
+        f"{FINDER_NAME}_{name_add}",
+        ByTextFinder,
+        search_types=search_types,
+        inner_context=inner_context,
+    )
+    factory.post_processing(
+        f"{POST_PROCESSING_NAME}_{name_add}", ExcludeByCollectorFilter, finder=f"${FINDER_NAME}_{name_add}"
+    )
+    return f"{POST_PROCESSING_NAME}_{name_add}"

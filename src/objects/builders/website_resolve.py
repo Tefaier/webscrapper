@@ -267,6 +267,102 @@ def write_new_settings():
     )
     link_websites[website] = lambda factory: simple_link(factory, link_type=["a"], link_limit={"class": "nav-next"})
 
+    # novelight.net
+    website = "novelight.net"
+    recognized_websites.append(website)
+    chrome_websites[website] = DriverTypes.CDP
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["title"]),
+        factory.finder(
+            f"{FINDER_NAME}_text_0",
+            ByAttributesFinder,
+            search_types=["div"],
+            search_limits={"class": "chapter-text"},
+        ),
+        factory.finder(f"{FINDER_NAME}_text_1", ByCssSelectorFinder, selector='div:not([class*="advertisment"])'),
+        factory.collector(
+            f"{COLLECTOR_NAME}_text",
+            FieldTypes.Text,
+            [f"{FINDER_NAME}_text_0", f"{FINDER_NAME}_text_1"],
+            DEFAULT_POST_PROCESSINGS,
+        ),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        factory.link_handler(press_link=False),
+        simple_link(factory, holder_type=["div"], holder_limit={"class": "pagination"}, link_type=["a"], link_exact=-1),
+    )
+
+    # novellive.app
+    website = "novellive.app"
+    recognized_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["span"], {"class": "chapter"}),
+        remover := by_content_remove(
+            factory,
+            "royal_road",
+            ["p, li"],
+            re.compile(rf'\b(?:{re.escape("Amazon")}|{re.escape("Royal road")})\b', re.IGNORECASE),
+        ),
+        simple_text(factory, holder_limit={"class": "txt"}, text_type=["p", "li"], extra_post_processors=[remover]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        simple_link(
+            factory,
+            holder_type=["div"],
+            holder_limit={"class": "top"},
+            link_type=["a"],
+            link_limit={"title": "Read Next Chapter"},
+        ),
+    )
+
+    # www.asianovel.net
+    website = "www.asianovel.net"
+    recognized_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"]),
+        simple_text(
+            factory,
+            holder_type=["section"],
+            holder_limit={"id": "chapter-content"},
+            text_type=["p"],
+            text_limit={"id": re.compile("paragraph-\d+")},
+        ),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        simple_link(
+            factory,
+            link_type=["a"],
+            link_limit={"class": "_next"},
+        ),
+    )
+
+    # novelhi.com
+    website = "novelhi.com"
+    recognized_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"]),
+        simple_text(
+            factory,
+            holder_type=["div"],
+            holder_limit={"id": "showReading"},
+            text_type=["sent"],
+        ),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        simple_link(
+            factory,
+            link_type=["a"],
+            link_limit={"class": "next"},
+        ),
+    )
+
 
 write_new_settings()
 
@@ -305,11 +401,9 @@ active_process_dicts = {
     "dummynovels.com": {"chrome": False, "chrome_undetected": True},
     "www.wuxiaworld.eu": {"chrome": False},
     "www.wuxiabee.com": {"chrome": True},
-    "www.asianovel.net": {"chrome": True, "sleep": False},
     "wuxiaworld.ru": {"chrome": False},
     "huahualibrary.wordpress.com": {},
     "www.teanovel.com": {},
-    "novelhi.com": {"chrome": True},
     "novellive.net": {"chrome": True},
     "www.fansmtl.com": {},
     "bambootriangle.wordpress.com": {},
@@ -579,14 +673,6 @@ active_parser_dicts = {
         "link_container": "div",
         "link_p": -1,
     },
-    "www.asianovel.net": {
-        "text_h": "div",
-        "text_l": {"data-dir": "ltr"},
-        "text_container": "article",
-        "title_h": "h2",
-        "link_h": "a",
-        "link_l": {"class": "pagination-single__right"},
-    },
     "wuxiaworld.ru": {
         "text_h": "p",
         "text_l": {"class": "js-full-content"},
@@ -611,14 +697,6 @@ active_parser_dicts = {
         "link_l": {"id": "buttons"},
         "link_container": "div",
         "link_p": 2,
-    },
-    "novelhi.com": {
-        "text_h": "sent",
-        "text_l": {"id": "showReading"},
-        "title_h": "h1",
-        "title_l": {"class": "book_title"},
-        "link_h": "a",
-        "link_l": {"class": "next"},
     },
     "novellive.net": {
         "text_h": "p",
