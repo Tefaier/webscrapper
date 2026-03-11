@@ -43,7 +43,7 @@ link_websites: Dict[str, Callable[[ExtendedFactory], Any]] = {}
 def write_new_settings():
     # tl.rulate.ru
     website = "tl.rulate.ru"
-    # recognized_websites.append(website)
+    recognized_websites.append(website)
     block_screen_websites[website] = lambda factory: (
         factory.finder(
             f"{FINDER_NAME}_block_0", ByAttributesFinder, search_types=["button"], search_limits={"name": "ok"}
@@ -296,7 +296,7 @@ def write_new_settings():
     # novellive.app
     website = "novellive.app"
     recognized_websites.append(website)
-    chrome_websites[website] = DriverTypes.Undetected
+    chrome_websites[website] = DriverTypes.CDP
     content_websites[website] = lambda factory: (
         simple_title(factory, ["span"], {"class": "chapter"}),
         remover := by_content_remove(
@@ -363,6 +363,69 @@ def write_new_settings():
         ),
     )
 
+    # dummynovels.com
+    website = "dummynovels.com"
+    recognized_websites.append(website)
+    chrome_websites[website] = DriverTypes.CDP
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"], {"class": "chapter-heading"}),
+        simple_text(factory, ["div"], {"class": "elementor-widget-theme-post-content"}, ["p", "div"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (simple_link(factory, ["div"], {"class": "chapter-nav-next"}, ["a"]))
+
+    # starcafe.me
+    website = "starcafe.me"
+    recognized_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
+    content_websites[website] = lambda factory: (
+        factory.post_processing(f"{POST_PROCESSING_NAME}_title_0", ExactElementTaker, take_at_index=0),
+        factory.post_processing(f"{POST_PROCESSING_NAME}_title_1", ExactElementTaker, take_at_index=-1),
+        factory.finder(f"{FINDER_NAME}_title_0", ByAttributesFinder, search_types=["h2"]),
+        factory.finder(f"{FINDER_NAME}_title_1", ByAttributesFinder, search_types=["h3"]),
+        factory.collector(
+            f"{COLLECTOR_NAME}_title_0",
+            FieldTypes.Text,
+            [f"{FINDER_NAME}_title_0"],
+            [f"{POST_PROCESSING_NAME}_title_0"] + DEFAULT_POST_PROCESSINGS,
+        ),
+        factory.collector(
+            f"{COLLECTOR_NAME}_title_1",
+            FieldTypes.Text,
+            [f"{FINDER_NAME}_title_1"],
+            [f"{POST_PROCESSING_NAME}_title_1"] + DEFAULT_POST_PROCESSINGS,
+        ),
+        simple_text(factory, ["div"], {"class": "no-select"}, ["p"]),
+        factory.orchestra([f"{COLLECTOR_NAME}_title_0", f"{COLLECTOR_NAME}_title_1", f"{COLLECTOR_NAME}_text"]),
+    )
+    link_websites[website] = lambda factory: (
+        simple_link(factory, link_type=["button"], link_limit={"title": "Next Chapter"})
+    )
+
+    # littlepinkstarfish.com
+    website = "littlepinkstarfish.com"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h2"], {"class", "wp-block-post-title"}),
+        factory.post_processing(f"{POST_PROCESSING_NAME}_cut_0", SidesCutFiltering, cut_from_ending=4),
+        factory.post_processing(f"{POST_PROCESSING_NAME}_split_0", SplitTagContentByInnerTags, split_tag_names=["br"]),
+        simple_text(
+            factory,
+            ["div"],
+            {"class": "entry-content"},
+            ["p", "h3", "li"],
+            extra_post_processors=[f"{POST_PROCESSING_NAME}_cut_0", f"{POST_PROCESSING_NAME}_split_0"],
+        ),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (simple_link(factory, link_type=["a"], link_limit={"rel": "next"}))
+
+    # littlepinkstarfish.wordpress.com
+    website = "littlepinkstarfish.wordpress.com"
+    recognized_websites.append(website)
+    content_websites[website] = content_websites["littlepinkstarfish.com"]
+    link_websites[website] = link_websites["littlepinkstarfish.com"]
+
 
 write_new_settings()
 
@@ -398,7 +461,6 @@ active_process_dicts = {
     "www.royalroad.com": {"chrome": False},
     "exiledrebelsscanlations.com": {"chrome": False},
     "moonlightnovel.com": {"chrome": False},
-    "dummynovels.com": {"chrome": False, "chrome_undetected": True},
     "www.wuxiaworld.eu": {"chrome": False},
     "www.wuxiabee.com": {"chrome": True},
     "wuxiaworld.ru": {"chrome": False},
@@ -433,7 +495,6 @@ active_process_dicts = {
     "sleepytranslations.com": {"chrome": True},
     "www.silknovel.com": {},
     "loomywoods.com": {"chrome": True},
-    "littlepinkstarfish.com": {},
     "snowlyme.com": {"chrome": True},
     "bittercoffeetranslations.com": {"chrome": True, "wait": True},
     "huitranslation.com": {},
@@ -646,15 +707,6 @@ active_parser_dicts = {
         "title_h": "empty",
         "link_h": "a",
         "link_l": {"rel": "next"},
-    },
-    "dummynovels.com": {
-        "text_h": "p",
-        "text_l": {"class": "elementor-widget-theme-post-content"},
-        "title_h": "h1",
-        "title_l": {"class": "chapter-heading"},
-        "link_h": "a",
-        "link_l": {"class": "chapter-nav-next"},
-        "link_container": "div",
     },
     "www.wuxiaworld.eu": {
         "text_h": "div",
@@ -948,13 +1000,6 @@ active_parser_dicts = {
         "title_h": "h1",
         "link_h": "a",
         "link_l": {"class": "next_page"},
-    },
-    "littlepinkstarfish.com": {
-        "text_h": "p",
-        "text_l": {"class": "entry-content"},
-        "title_h": "h2",
-        "link_h": "a",
-        "link_l": {"rel": "next"},
     },
     "snowlyme.com": {
         "text_h": "p",
