@@ -7,6 +7,7 @@ from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 
 from objects.file_handlers.log_writer import LogWriter
+from objects.web_handlers.driver_handler import DriverHandler
 from utils.web_functions import xpath_soup
 from objects.types.custom_exceptions import TargetNotFoundException
 
@@ -20,7 +21,7 @@ class BlockScreenHandler(WebHandler):
 
 
 class NoHandling(BlockScreenHandler):
-    def handle(self, driver: WebDriver, soup: BeautifulSoup) -> None:
+    def handle(self, driver: DriverHandler, soup: BeautifulSoup) -> None:
         pass
 
 
@@ -29,7 +30,7 @@ class CollectedHandler(BlockScreenHandler):
         super().__init__(log_writer)
         self.sub_handlers = sub_handlers
 
-    def handle(self, driver: WebDriver, soup: BeautifulSoup) -> None:
+    def handle(self, driver: DriverHandler, soup: BeautifulSoup) -> None:
         for handle in self.sub_handlers:
             handle.handle(driver, soup)
 
@@ -40,7 +41,7 @@ class FieldInputHandler(BlockScreenHandler):
         self.input_finder = input_finder
         self.to_input = to_input
 
-    def handle(self, driver: WebDriver, soup: BeautifulSoup) -> None:
+    def handle(self, driver: DriverHandler, soup: BeautifulSoup) -> None:
         located = self.input_finder.find(soup)
         if len(located) == 0:
             raise TargetNotFoundException("Failed to find input field with locator provided")
@@ -57,7 +58,7 @@ class ButtonClickHandler(BlockScreenHandler):
         super().__init__(log_writer)
         self.button_finder = button_finder
 
-    def handle(self, driver: WebDriver, soup: BeautifulSoup) -> None:
+    def handle(self, driver: DriverHandler, soup: BeautifulSoup) -> None:
         located = self.button_finder.find(soup)
         if len(located) == 0:
             raise TargetNotFoundException("Failed to find button field with locator provided")

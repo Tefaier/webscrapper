@@ -21,6 +21,7 @@ function showPendingRequests() {
 		if (elements.length > 0) {
 				elements.forEach(request => {
 						const li = document.createElement('li');
+						li.setAttribute('onclick', 'copySelf(this)');
 						li.textContent = request;
 						list.appendChild(li);
 				});
@@ -77,8 +78,27 @@ window.addEventListener('DOMContentLoaded', () => {
     const url = document.getElementById('cr-url').value.trim();
     const chapters = Number(document.getElementById('cr-chapters').value);
     const file_extension = document.getElementById('cr-ext').value;
+    // optional lifetime conversion to seconds
+    const lifetimeValRaw = document.getElementById('cr-lifetime').value;
+    const lifetimeUnit = document.getElementById('cr-lifetime-unit').value;
+    let lifetime_seconds = undefined;
+    if (lifetimeValRaw !== '' && !isNaN(Number(lifetimeValRaw))) {
+      const lifetimeVal = Number(lifetimeValRaw);
+      const unitMap = { seconds: 1, minutes: 60, hours: 3600, days: 86400 };
+      const multiplier = unitMap[lifetimeUnit] || 60; // default minutes
+      lifetime_seconds = Math.floor(lifetimeVal * multiplier);
+      if (!Number.isFinite(lifetime_seconds) || lifetime_seconds <= 0) {
+        lifetime_seconds = undefined;
+      }
+    }
+
+    const payload = { url, chapters, file_extension };
+    if (typeof lifetime_seconds === 'number') {
+      payload.lifetime_seconds = lifetime_seconds;
+    }
+
     try {
-      const req_id = await postJson('/requests', { url, chapters, file_extension });
+      const req_id = await postJson('/requests', payload);
       addToLocalStorageArray("pending-requests", req_id);
       showPendingRequests();
       showMsg(crMsg, 'Request created. Request ID: ' + req_id + '\nDo not lose it since it will be later required to download result.', true);
@@ -136,3 +156,18 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+function copySelf(element) {
+  const textToCopy = element.textContent;
+
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    const originalText = element.textContent;
+    element.textContent = 'Copied!';
+
+    setTimeout(() => {
+      element.textContent = originalText;
+    }, 500);
+  }).catch(err => {
+    console.error('Failed to copy: ', err);
+  });
+}

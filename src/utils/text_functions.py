@@ -16,6 +16,16 @@ def string_with_style(text: str):
     return text
 
 
+def string_with_newlines_fixed(text: str):
+    # removes following new lines
+    text = re.sub(r"^(\r?\n)*", "", text)
+    # removes ending new lines
+    text = re.sub(r"(\r?\n)*$", "", text)
+    # removes multiple new lines
+    text = re.sub(r"(\r?\n)+", r"\n", text)
+    return text
+
+
 def string_with_meaning(text: str) -> bool:
     return re.search("[^\W_]", text) != None
 
@@ -48,6 +58,7 @@ def fix_bad_detections(input: str) -> str:
     result = re.sub(r"(\W)(\wm )", r"\1I'm ", input)
     result = re.sub(r"\n+", "\n", result)
     result = result.replace("|", "I")
+    result = re.sub(r"\n(?=[a-z0-9])", " ", result)
     return result
 
 

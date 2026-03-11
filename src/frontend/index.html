@@ -36,6 +36,19 @@
         {% endfor %}
       </select>
 
+      <fieldset class="mt">
+        <legend>Optional: Request lifetime</legend>
+        <label for="cr-lifetime">Lifetime</label>
+        <input id="cr-lifetime" type="number" min="1" placeholder="e.g. 10" />
+        <label for="cr-lifetime-unit" class="sr-only">Unit</label>
+        <select id="cr-lifetime-unit">
+          <option value="seconds">seconds</option>
+          <option value="minutes" selected>minutes</option>
+          <option value="hours">hours</option>
+          <option value="days">days</option>
+        </select>
+      </fieldset>
+
       <div class="mt"><button type="submit">Create</button></div>
       <div id="cr-msg" class="msg" hidden></div>
     </form>
@@ -63,7 +76,7 @@
 
   <section>
     <h2>Pending Requests</h2>
-    <ul id="pending-requests">
+    <ul id="pending-requests" class="requests">
     </ul>
   </section>
 

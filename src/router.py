@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends
 import io
 import os
@@ -8,7 +10,12 @@ from dto.models import ParseRequest, AddWebsiteRequest, DownloadResultRequest
 
 from database import db
 from objects.types.custom_exceptions import CommandException, DBOverlapException, InvalidUrlException
-from settings.system_defaults import FINISHED_TASKS_LIFETIME, OUTPUT_FILE_DIRECTORY
+from settings.system_defaults import (
+    OUTPUT_FILE_DIRECTORY,
+    DEV_MODE,
+    FINISHED_TASKS_LIFETIME_LIMIT_SECONDS,
+    FINISHED_TASKS_DEFAULT_LIFETIME_SECONDS,
+)
 import zipfile
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -42,10 +49,24 @@ def create_request(body: ParseRequest):
     url_value = body.url
     chapters_value = body.chapters
     file_extension = body.file_extension
+    lifetime_seconds = body.lifetime_seconds
     try:
         if not url_value or not chapters_value:
             raise CommandException("URL and chapters are required")
-        id = db.create_request(url_value, chapters_value, file_extension)
+        if lifetime_seconds is not None:
+            if not isinstance(lifetime_seconds, int) or lifetime_seconds <= 0:
+                return PlainTextResponse(
+                    content="Requested lifetime must be a positive integer if provided", status_code=400
+                )
+            if lifetime_seconds > FINISHED_TASKS_LIFETIME_LIMIT_SECONDS.total_seconds():
+                return PlainTextResponse(
+                    content=f"Requested lifetime must be less than {FINISHED_TASKS_LIFETIME_LIMIT_SECONDS}",
+                    status_code=400,
+                )
+        else:
+            lifetime_seconds = FINISHED_TASKS_DEFAULT_LIFETIME_SECONDS.total_seconds()
+        print(lifetime_seconds)
+        id = db.create_request(url_value, chapters_value, file_extension, lifetime_seconds)
         request = db.get_request(id)
         return PlainTextResponse(content=request.request_id, status_code=200)
     except (CommandException, InvalidUrlException) as e:
@@ -81,7 +102,7 @@ def download_result(query: DownloadResultRequest = Depends()):
             raise CommandException("Request is not completed yet")
         if request.expired:
             raise CommandException(
-                f"Request already expired, expiration time is {FINISHED_TASKS_LIFETIME} and task was finished at {request.completed_at}"
+                f"Request already expired, expiration time is {timedelta(seconds=request.lifetime_seconds)} and task was finished at {request.completed_at}"
             )
 
         directory = os.path.join(OUTPUT_FILE_DIRECTORY, str(request.request_id))
@@ -89,6 +110,8 @@ def download_result(query: DownloadResultRequest = Depends()):
         with zipfile.ZipFile(mem, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
             for root, dirs, files in os.walk(directory):
                 for file in files:
+                    if not DEV_MODE and file == "log.txt":
+                        continue
                     file_path = os.path.join(root, file)
                     arcname = os.path.relpath(file_path, directory)
                     zf.write(file_path, arcname=arcname)

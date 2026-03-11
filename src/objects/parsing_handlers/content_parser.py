@@ -59,56 +59,47 @@ class ContentParser:
     # Internal helpers
     # ------------------------
     def write_content(self):
-        self.orchestra.run(self.current_url, self._current_dom())
+        self.orchestra.run(self.current_url, self.get_soup(self.current_url))
 
     def _using_chrome(self) -> bool:
         return self.driver_handler is not None
 
     def get_soup(self, url: str) -> BeautifulSoup:
         if self._using_chrome():
-            if self.driver_handler.get_driver().current_url == url:
-                return self._current_dom()
-            else:
-                self.driver_handler.get_driver().get(url)
-                html = self.driver_handler.get_driver().page_source
+            html = self.driver_handler.get(url).get_content()
         else:
-            if self._last_request_url == url:
-                return self._current_dom()
+            if self._last_request_url == url and self._last_request_content:
+                html = self._last_request_content
             else:
                 try:
                     r = requests.get(url, timeout=REQUEST_GET_TIMEOUT_SECONDS)
                     try:
                         html = r.content.decode("utf8")
-                    except Exception:
+                    except Exception as e:
+                        self.logger.warning("Failed while decoding request", e)
                         html = r.text
-                except Exception:
+                except Exception as e:
+                    self.logger.warning("Failed while making request", e)
                     html = ""
                 self._last_request_url = url
                 self._last_request_content = html
         return BeautifulSoup(html, "html.parser")
-
-    def _current_dom(self) -> BeautifulSoup:
-        if self._using_chrome():
-            return BeautifulSoup(self.driver_handler.get_driver().page_source, "html.parser")
-        elif self._last_request_content:
-            return BeautifulSoup(self._last_request_content, "html.parser")
-        raise RuntimeError("_current_dom called without chrome driver")
 
     def handle_block_and_scroll(self, soup: BeautifulSoup):
         if not self._using_chrome():
             return
         # 1) Try to bypass blocking screens (input/click) using provided handler
         try:
-            self.block_handler.handle(self.driver_handler.get_driver(), soup)
+            self.block_handler.handle(self.driver_handler, soup)
         except TargetNotFoundException as e:
             self.logger.warning(f"Block screen handler failed", exc_info=e)
             pass
 
         # After possible interactions, DOM likely changed
-        soup = self._current_dom()
+        soup = BeautifulSoup(self.driver_handler.get_content(), "html.parser")
 
         # 2) Apply scrolling strategy (e.g., load dynamic content)
-        self.scroll_strategy.handle(self.driver_handler.get_driver(), soup)
+        self.scroll_strategy.handle(self.driver_handler, soup)
 
     def close(self):
         try:
@@ -117,7 +108,6 @@ class ContentParser:
             self.logger.error("Failed while closing output", exc_info=e)
         try:
             if self.driver_handler:
-                self.driver_handler.get_driver().delete_all_cookies()
-                self.driver_handler.get_driver().quit()
+                self.driver_handler.quit()
         except Exception as e:
             self.logger.error("Failed while clearing driver", exc_info=e)

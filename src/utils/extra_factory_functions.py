@@ -1,8 +1,13 @@
-from typing import Optional, List, Dict
+import re
+from typing import Optional, List, Dict, Union
 
 from objects.builders.extended_factory import ExtendedFactory
-from objects.elements.elements_finders import ByAttributesFinder
-from objects.elements.elements_post_processings import ExactElementTaker, SplitTagContentByInnerTags
+from objects.elements.elements_finders import ByAttributesFinder, ByTextFinder
+from objects.elements.elements_post_processings import (
+    ExactElementTaker,
+    SplitTagContentByInnerTags,
+    ExcludeByCollectorFilter,
+)
 from objects.types.field_types import FieldTypes
 from settings.builders_defaults import *
 
@@ -12,7 +17,7 @@ def simple_title(
 ) -> ExtendedFactory:
     return factory.finder(
         f"{FINDER_NAME}_title_0", ByAttributesFinder, search_types=types or ["title"], search_limits=limits or {}
-    ).collector(f"{COLLECTOR_NAME}_title", FieldTypes.Text, [f"{FINDER_NAME}_title_0"])
+    ).collector(f"{COLLECTOR_NAME}_title", FieldTypes.Text, [f"{FINDER_NAME}_title_0"], DEFAULT_POST_PROCESSINGS)
 
 
 def simple_text(
@@ -21,6 +26,7 @@ def simple_text(
     holder_limit: Dict[str, str] = None,
     text_type: List[str] = ["p"],
     text_limit: Dict[str, str] = None,
+    extra_post_processors: Optional[List[str]] = None,
 ) -> ExtendedFactory:
     return (
         factory.finder(
@@ -34,7 +40,7 @@ def simple_text(
             f"{COLLECTOR_NAME}_text",
             FieldTypes.Text,
             [f"{FINDER_NAME}_text_0", f"{FINDER_NAME}_text_1"],
-            DEFAULT_POST_PROCESSINGS,
+            (extra_post_processors or []) + DEFAULT_POST_PROCESSINGS,
         )
     )
 
@@ -94,7 +100,7 @@ def simple_link(
     if link_exact:
         name = f"{POST_PROCESSING_NAME}_link_{len(posts)}"
         posts.append(name)
-        factory.post_processing(name, ExactElementTaker, take_at_index=-1)
+        factory.post_processing(name, ExactElementTaker, take_at_index=link_exact)
     return factory.link_collector(finders, posts)
 
 
@@ -103,3 +109,18 @@ def orchestra(factory: ExtendedFactory, with_images: bool = False) -> ExtendedFa
     if with_images:
         collectors += [f"{COLLECTOR_NAME}_image"]
     return factory.orchestra(collectors)
+
+
+def by_content_remove(
+    factory: ExtendedFactory, name_add: str, search_types: List[str], inner_context: Union[str, re.Pattern]
+) -> str:
+    factory.finder(
+        f"{FINDER_NAME}_{name_add}",
+        ByTextFinder,
+        search_types=search_types,
+        inner_context=inner_context,
+    )
+    factory.post_processing(
+        f"{POST_PROCESSING_NAME}_{name_add}", ExcludeByCollectorFilter, finder=f"${FINDER_NAME}_{name_add}"
+    )
+    return f"{POST_PROCESSING_NAME}_{name_add}"

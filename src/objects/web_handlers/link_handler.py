@@ -104,26 +104,26 @@ class LinkHandler:
         self.logger.debug("Trying to click link element")
         if self.driver_handler is None:
             raise RuntimeError("Click requested but selenium WebDriver or utilities not available")
-        previous_url = self.driver_handler.get_driver().current_url
+        previous_url = self.driver_handler.get_url()
 
         # Find same element in the live DOM and click it
         xpath = xpath_soup(link_el)  # type: ignore[arg-type]
-        web_el = self.driver_handler.get_driver().find_element(By.XPATH, xpath)
-        self.driver_handler.get_driver().execute_script("arguments[0].click();", web_el)
+        web_el = self.driver_handler.find_element(By.XPATH, xpath)
+        web_el.click()
 
         url_changed = self._loop_driver_url_change(previous_url)
 
         if self.link_pure_click:
             # No validation requested
-            return self.driver_handler.get_driver().current_url
+            return self.driver_handler.get_url()
 
         if not url_changed:
             raise LinkException("Pressing located link didn't change url")
 
         if self.reload_after:
-            self.driver_handler.get_driver().get(self.driver_handler.get_driver().current_url)
+            self.driver_handler.reload()
 
-        return self.driver_handler.get_driver().current_url
+        return self.driver_handler.get_url()
 
     def _navigate_by_href(self, current_url: str, link_el: PageElement) -> str:
         self.logger.debug("Trying to go by link href or execute")
@@ -133,24 +133,24 @@ class LinkHandler:
         if not href:
             raise LinkException("Link element has no href to navigate by")
 
-        previous_url = self.driver_handler.get_driver().current_url
+        previous_url = self.driver_handler.get_url()
 
         if href.startswith("javascript"):
             # Execute inline JS and wait for navigation
-            self.driver_handler.get_driver().execute_script(href)
+            self.driver_handler.execute(href)
             if not self._loop_driver_url_change(previous_url):
                 raise NextChapterNotReachedException(f"javascript navigation didn't change url: {href}")
 
         next_abs = urljoin(current_url, href)
-        if self.driver_handler.get_driver().current_url == next_abs:
+        if self.driver_handler.get_url() == next_abs:
             # Same URL target - force refresh
-            self.driver_handler.get_driver().refresh()
+            self.driver_handler.reload()
         else:
-            self.driver_handler.get_driver().get(next_abs)
+            self.driver_handler.get(next_abs)
 
         if not self._loop_driver_url_change(previous_url):
             raise NextChapterNotReachedException("Navigation by href didn't change url")
-        return self.driver_handler.get_driver().current_url
+        return self.driver_handler.get_url()
 
     """
     Loops checking whether url on driver changed. Returns whether url changed
@@ -158,12 +158,10 @@ class LinkHandler:
 
     def _loop_driver_url_change(self, previous_url: str) -> bool:
         wait_start = time.time()
-        try:
-            WebDriverWait(self.driver_handler.get_driver(), self.wait_for_url_change_seconds, poll_frequency=0.3).until(
-                lambda driver: driver.current_url != previous_url
-            )
-            self.logger.debug(f"Url changed in {time.time() - wait_start}s")
-            return True
-        except TimeoutException:
-            self.logger.debug(f"Url change wait expired: {self.wait_for_url_change_seconds}s")
-            return False
+        while time.time() - wait_start < self.wait_for_url_change_seconds:
+            if self.driver_handler.get_url() != previous_url:
+                self.logger.debug(f"Url changed in {time.time() - wait_start}s")
+                return True
+            time.sleep(0.3)
+        self.logger.debug(f"Url change wait expired: {self.wait_for_url_change_seconds}s")
+        return False

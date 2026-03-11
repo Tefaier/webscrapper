@@ -5,13 +5,15 @@ from selenium.webdriver.chrome.webdriver import WebDriver
 
 from objects.elements.elements_finders import ElementsFinder
 from objects.file_handlers.log_writer import LogWriter
-from objects.types.custom_exceptions import UnsupportedArgumentsException
+from objects.types.custom_exceptions import UnsupportedArgumentsException, TargetNotFoundException
+from objects.web_handlers.driver_handler import DriverHandler
 from settings.elements_defaults import (
     FILTER_NO_MEANING,
     SPACES_NORMALIZATION,
     SYMBOLS_CONVERTION,
     REPEAT_TOLERANCE,
     EXPECTED_LANGUAGES,
+    NEWLINE_NORMALIZATION,
 )
 from utils.text_functions import (
     string_with_meaning,
@@ -19,6 +21,7 @@ from utils.text_functions import (
     convert_utf8_symbols,
     fix_bad_detections,
     check_is_same,
+    string_with_newlines_fixed,
 )
 from utils.web_functions import (
     extract_all_styles,
@@ -32,8 +35,7 @@ class ElementsPostProcessing:
     def __init__(self, log_writer: LogWriter):
         self.logger = log_writer.get_logger(type(self).__name__)
 
-    def process(self, soup: BeautifulSoup, elements: List[PageElement]) -> List[PageElement]:
-        ...
+    def process(self, soup: BeautifulSoup, elements: List[PageElement]) -> List[PageElement]: ...
 
 
 class SidesCutFiltering(ElementsPostProcessing):
@@ -61,7 +63,7 @@ class ExactElementTaker(ElementsPostProcessing):
             f"Wanted to have at least {self.index + 1} elements for taking exact but actual count was {len(elements)}"
         )
         self.logger.error(message)
-        raise UnsupportedArgumentsException(message)
+        raise TargetNotFoundException(message)
 
 
 class VisibilityFilter(ElementsPostProcessing):
@@ -93,29 +95,31 @@ class JammedTextConverter(ElementsPostProcessing):
         self,
         log_writer: LogWriter,
         jammed_finder: ElementsFinder = None,
-        driver: WebDriver = None,
-        expected_languages: List[str] = EXPECTED_LANGUAGES,
+        driver_handler: DriverHandler = None,
+        expected_languages: str = EXPECTED_LANGUAGES,
         try_fix_text: bool = True,
     ):
         super().__init__(log_writer)
-        self.driver = driver
+        self.driver_handler = driver_handler
         self.jammed_finder = jammed_finder
         self.expected_languages = expected_languages
         # self.jammed_classes = jammed_classes if jammed_classes is not None else ["jum", "jmbl"]
         self.fix = try_fix_text
 
     def process(self, soup: BeautifulSoup, elements: List[PageElement]) -> List[PageElement]:
-        if self.driver is None:
+        if self.driver_handler is None:
             return elements
         return [
-            replace_element_with_text(soup, element, self._convert_to_text(element))
-            if self._check_element_is_jammed(soup, element)
-            else element
+            (
+                replace_element_with_text(soup, element, self._convert_to_text(element))
+                if self._check_element_is_jammed(soup, element)
+                else element
+            )
             for element in elements
         ]
 
     def _convert_to_text(self, element: Tag) -> str:
-        result = take_element_viewed_content(self.driver, self.expected_languages, element)
+        result = take_element_viewed_content(self.driver_handler, self.expected_languages, element)
         self.logger.debug(f"Convertaion result: {result}")
         if self.fix:
             result = fix_bad_detections(result)
@@ -124,7 +128,14 @@ class JammedTextConverter(ElementsPostProcessing):
 
     def _check_element_is_jammed(self, soup: BeautifulSoup, element: PageElement) -> bool:
         if isinstance(element, Tag):
-            result = element.find("img") is not None or len(self.jammed_finder.find(soup, [element])) > 0
+            result = (
+                element.find("img") is not None
+                or len(
+                    list(filter(lambda tag: id(tag) == id(element), self.jammed_finder.find(soup, [element.parent])))
+                )
+                > 0
+                or len(self.jammed_finder.find(soup, [element])) > 0
+            )
         else:
             result = False
         if result:
@@ -207,13 +218,13 @@ class SplitTagContentByInnerTags(ElementsPostProcessing):
         buffer: List[str] = []
         had_splitter = False
 
-        def walk(node: PageElement):
+        def walk(node: PageElement, root_tag: bool = False):
             nonlocal had_splitter
             if isinstance(node, NavigableString):
                 buffer.append(str(node))
                 return
             if isinstance(node, Tag):
-                if node.name and node.name.lower() in self.split_names:
+                if node.name and node.name.lower() in self.split_names and not root_tag:
                     parts.append("".join(buffer))
                     buffer.clear()
                     had_splitter = True
@@ -221,7 +232,7 @@ class SplitTagContentByInnerTags(ElementsPostProcessing):
                 for child in node.children:
                     walk(child)
 
-        walk(element)
+        walk(element, True)
         parts.append("".join(buffer))
         if had_splitter:
             return parts
@@ -234,11 +245,13 @@ class TextNormalizer(ElementsPostProcessing):
         log_writer: LogWriter,
         filter_no_meaning: bool = FILTER_NO_MEANING,
         spaces_normalization: bool = SPACES_NORMALIZATION,
+        newline_normalization: bool = NEWLINE_NORMALIZATION,
         symbols_convertion: bool = SYMBOLS_CONVERTION,
     ):
         super().__init__(log_writer)
         self.filter_no_meaning = filter_no_meaning
         self.space_normalization = spaces_normalization
+        self.newline_normalization = newline_normalization
         self.symbols_convertion = symbols_convertion
 
     def process(self, soup: BeautifulSoup, elements: List[PageElement]) -> List[PageElement]:
@@ -247,6 +260,11 @@ class TextNormalizer(ElementsPostProcessing):
         if self.space_normalization:
             elements = [
                 replace_element_with_text(soup, element, string_with_style(element.text)) for element in elements
+            ]
+        if self.newline_normalization:
+            elements = [
+                replace_element_with_text(soup, element, string_with_newlines_fixed(element.text))
+                for element in elements
             ]
         if self.symbols_convertion:
             elements = [

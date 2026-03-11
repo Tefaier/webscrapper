@@ -28,8 +28,10 @@ class RequestDatabase:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     started_at TIMESTAMP,
                     completed_at TIMESTAMP,
+                    delete_at TIMESTAMP,
                     details TEXT,
-                    expired BOOLEAN DEFAULT false
+                    expired BOOLEAN DEFAULT false,
+                    lifetime_seconds INTEGER NOT NULL
             )
             """
             )
@@ -57,8 +59,10 @@ class RequestDatabase:
                 created_at=request_dict["created_at"],
                 started_at=request_dict["started_at"],
                 completed_at=request_dict["completed_at"],
+                delete_at=request_dict["delete_at"],
                 details=request_dict["details"],
                 expired=request_dict["expired"],
+                lifetime_seconds=request_dict["lifetime_seconds"],
             )
 
     def get_request_by_request_id(self, rid: UUID) -> Optional[Request]:
@@ -73,13 +77,13 @@ class RequestDatabase:
 
         return self.get_request(result[0])
 
-    def create_request(self, url: str, chapters: int, file_extension: str) -> int:
+    def create_request(self, url: str, chapters: int, file_extension: str, lifetime_seconds: int) -> int:
         """Create a new request and return its ID"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO requests (url, chapters, request_id, file_extension) VALUES (?, ?, ?, ?)",
-                (url, chapters, str(uuid.uuid4()), file_extension),
+                "INSERT INTO requests (url, chapters, request_id, file_extension, lifetime_seconds) VALUES (?, ?, ?, ?, ?)",
+                (url, chapters, str(uuid.uuid4()), file_extension, lifetime_seconds),
             )
             conn.commit()
             return cursor.lastrowid  # type: ignore
@@ -88,7 +92,7 @@ class RequestDatabase:
         """Mark a request as completed with results"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "UPDATE requests SET status = 'SUCCESS', completed_at = CURRENT_TIMESTAMP, details = ? WHERE id = ?",
+                "UPDATE requests SET status = 'SUCCESS', completed_at = CURRENT_TIMESTAMP, details = ?, delete_at = DATETIME(CURRENT_TIMESTAMP, '+' || CAST(lifetime_seconds AS TEXT) ||' seconds') WHERE id = ?",
                 (json.dumps(details), id),
             )
 
@@ -120,14 +124,13 @@ class RequestDatabase:
                 )
             return ids
 
-    def claim_expired_requests(self, expiration_period: timedelta) -> List[int]:
+    def claim_expired_requests(self) -> List[int]:
         """Atomically get and update SUCCESS and FAILED requests to CLEARED status"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             # First select IDs of requests to kill
             cursor.execute(
-                "SELECT id FROM requests WHERE expired is FALSE and completed_at is not null and completed_at < ?",
-                (datetime.now() - expiration_period,),
+                "SELECT id FROM requests WHERE expired is FALSE and completed_at is not null and delete_at < CURRENT_TIMESTAMP",
             )
             ids = [row[0] for row in cursor.fetchall()]
 
