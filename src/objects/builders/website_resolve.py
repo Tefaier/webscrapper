@@ -8,7 +8,7 @@ from objects.parsing_handlers.parsing_process import ParsingProcess
 from objects.types.custom_exceptions import CommandException
 from objects.types.driver_types import DriverTypes
 from objects.types.order_stategy import OrderStrategy
-from objects.web_handlers.block_screen_handler import ButtonClickHandler
+from objects.web_handlers.block_screen_handler import ButtonClickHandler, CaptchaClickHandler
 from objects.web_handlers.scroll_strategy import BottomScroll
 from utils.extra_factory_functions import *
 
@@ -47,8 +47,9 @@ def write_new_settings():
     block_screen_websites[website] = lambda factory: (
         factory.finder(
             f"{FINDER_NAME}_block_0", ByAttributesFinder, search_types=["button"], search_limits={"name": "ok"}
-        )
-    ).main_block_handler(ButtonClickHandler, button_finder=f"${FINDER_NAME}_block_0")
+        ),
+        factory.main_block_handler(ButtonClickHandler, button_finder=f"${FINDER_NAME}_block_0"),
+    )
 
     # gravitytales.com
     website = "gravitytales.com"
@@ -426,6 +427,35 @@ def write_new_settings():
     content_websites[website] = content_websites["littlepinkstarfish.com"]
     link_websites[website] = link_websites["littlepinkstarfish.com"]
 
+    # www.royalroad.com
+    website = "www.royalroad.com"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_text(factory, ["h1"]),
+        simple_text(factory, ["div"], {"class": "chapter-content"}, ["p"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        factory.finder(
+            f"{FINDER_NAME}_link_0",
+            ByCssSelectorFinder,
+            selector="div.nav-buttons > div:nth-of-type(2) > a:first-of-type",
+        ),
+        factory.link_collector([f"{FINDER_NAME}_link_0"], []),
+    )
+
+    # 18.foxaholic.com
+    website = "18.foxaholic.com"
+    recognized_websites.append(website)
+    chrome_websites[website] = DriverTypes.CDP
+    content_websites[website] = lambda factory: (
+        factory.main_block_handler(CaptchaClickHandler),
+        simple_title(factory, ["title"]),
+        simple_text(factory, holder_type=["div"], holder_limit={"class": "text-left"}, text_type=["p"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (simple_link(factory, link_type=["a"], link_limit={"class": "next_page"}))
+
 
 write_new_settings()
 
@@ -447,7 +477,6 @@ active_process_dicts = {
     "www.readlightnovel.me": {"chrome": False},
     "www.mtlnovel.com": {"chrome": True, "clearing": True, "sleep": True},
     "www.mtlnovels.com": {},  # {"chrome": True, "clearing": True, "chrome_undetected": True},
-    "18.foxaholic.com": {"chrome": True},
     "www.foxaholic.com": {
         "chrome": True,
         "wait": True,
@@ -458,7 +487,6 @@ active_process_dicts = {
     "strictlybromance.com": {"chrome": True},
     "kinkytranslations.com": {"chrome": False},
     "www.isotls.com": {"chrome": False},
-    "www.royalroad.com": {"chrome": False},
     "exiledrebelsscanlations.com": {"chrome": False},
     "moonlightnovel.com": {"chrome": False},
     "www.wuxiaworld.eu": {"chrome": False},
@@ -595,16 +623,6 @@ active_parser_dicts = {
         "link_h": "a",
         "link_l": {"class": "next"},
     },
-    "18.foxaholic.com": {
-        "left": 0,
-        "right": 0,
-        "text_h": "p",
-        "text_l": {"class": "text-left"},
-        "title_h": "title",
-        "title_l": None,
-        "link_h": "a",
-        "link_l": {"class": "next_page"},
-    },
     "www.foxaholic.com": {
         "left": 0,
         "right": 0,
@@ -681,16 +699,6 @@ active_parser_dicts = {
         "link_l": {"class": "btn-group"},
         "link_container": "div",
         "link_p": 2,
-    },
-    "www.royalroad.com": {
-        "text_h": "p",
-        "text_l": {"class": "chapter-content"},
-        "text_intelligent": True,
-        "title_h": "h1",
-        "link_h": "a",
-        "link_l": {"class": "nav-buttons"},
-        "link_container": "div",
-        "link_p": -1,
     },
     "exiledrebelsscanlations.com": {
         "text_h": "p",

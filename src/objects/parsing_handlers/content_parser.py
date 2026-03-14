@@ -85,12 +85,12 @@ class ContentParser:
                 self._last_request_content = html
         return BeautifulSoup(html, "html.parser")
 
-    def handle_block_and_scroll(self, soup: BeautifulSoup):
+    def handle_block_and_scroll(self, soup: BeautifulSoup, attempt: int):
         if not self._using_chrome():
             return
         # 1) Try to bypass blocking screens (input/click) using provided handler
         try:
-            self.block_handler.handle(self.driver_handler, soup)
+            self.block_handler.handle(self.driver_handler, soup, attempt)
         except TargetNotFoundException as e:
             self.logger.warning(f"Block screen handler failed", exc_info=e)
             pass
@@ -99,7 +99,7 @@ class ContentParser:
         soup = BeautifulSoup(self.driver_handler.get_content(), "html.parser")
 
         # 2) Apply scrolling strategy (e.g., load dynamic content)
-        self.scroll_strategy.handle(self.driver_handler, soup)
+        self.scroll_strategy.handle(self.driver_handler, soup, attempt)
 
     def close(self):
         try:

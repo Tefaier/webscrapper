@@ -63,7 +63,7 @@ class ByAttributesFinder(ElementsFinder):
             return cached
 
         results: List[PageElement] = []
-        origins = [soup] if search_from is None or len(search_from) == 0 else search_from
+        origins = [soup] if search_from is None else search_from
         for origin in origins:
             if isinstance(origin, Tag):
                 results += origin.find_all(self.search_types, attrs=self.search_limits)

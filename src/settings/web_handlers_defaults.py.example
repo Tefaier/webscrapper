@@ -15,3 +15,5 @@ UNDETECTED_METHOD = True  # whether to use undetected selenium (guest profile wi
 WINDOW_WIDTH = 1920  # virtual window width
 WINDOW_HEIGHT = 1080  # virtual window height
 DRIVER_VERSION = 141  # UNSUPPORTED
+CAPTCHA_WAIT = 3.0  # max wait time for captcha to become clickable
+CAPTCHA_RETRY = 0.2  # retry time between checks during waiting

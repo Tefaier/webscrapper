@@ -64,7 +64,7 @@ class ReloadHandler:
         while attempts <= self.max_attempts:
             attempts += 1
             self.logger.info(f"Attempt {attempts}")
-            if self._attempt_once(parser):
+            if self._attempt_once(parser, attempts):
                 return
             if self.driver_handler and self.max_page_load_wait_seconds > 0.0:
                 deadline = time.time() + float(self.max_page_load_wait_seconds)
@@ -73,7 +73,7 @@ class ReloadHandler:
                     soup = None
                     try:
                         soup = parser.get_soup(parser.current_url)
-                        parser.handle_block_and_scroll(soup)
+                        parser.handle_block_and_scroll(soup, attempts)
                         parser.write_content()
                         return
                     except TargetNotFoundException:
@@ -87,11 +87,11 @@ class ReloadHandler:
     # ------------------------
     # Internal helpers
     # ------------------------
-    def _attempt_once(self, parser: ContentParser) -> bool:
+    def _attempt_once(self, parser: ContentParser, attempts: int) -> bool:
         """Single attempt to open/process the page. Returns whether operation succeeded"""
         soup = parser.get_soup(parser.current_url)
         if self.driver_handler:
-            parser.handle_block_and_scroll(soup)
+            parser.handle_block_and_scroll(soup, attempts)
             self._maybe_wait_before_process()
 
         try:
@@ -109,10 +109,7 @@ class ReloadHandler:
     def _perform_refresh(self, parser: ContentParser, attempt: int):
         if self.driver_handler is None:
             return
-        if attempt == 0:
-            self.logger.debug("Trying to solve captcha")
-            self.driver_handler.try_solve_captcha()
-        elif attempt < self.max_attempts:
+        if attempt < self.max_attempts:
             self.logger.debug("Deleting cookies and refresh")
             self.driver_handler.reload()
         else:

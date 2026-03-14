@@ -19,7 +19,7 @@ class NoScroll(ScrollStrategy):
     def __init__(self):
         pass
 
-    def handle(self, driver: DriverHandler, soup: BeautifulSoup) -> None:
+    def handle(self, driver: DriverHandler, soup: BeautifulSoup, attempt: int) -> None:
         return
 
 
@@ -34,7 +34,7 @@ class BottomScroll(ScrollStrategy):
         self.scroll_pause_time = scroll_pause_time
         self.scroll_max_attempts = scroll_max_attempts
 
-    def handle(self, driver: DriverHandler, soup: BeautifulSoup) -> None:
+    def handle(self, driver: DriverHandler, soup: BeautifulSoup, attempt: int) -> None:
         last_height = driver.execute("return document.body.scrollHeight")
         for i in range(self.scroll_max_attempts):
             if hasattr(driver.unsafe_driver_get(), "scroll_to_bottom"):
