@@ -4,6 +4,7 @@ import time
 from typing import TYPE_CHECKING
 
 from bs4 import BeautifulSoup
+from selenium.common import NoSuchElementException
 
 from objects.file_handlers.log_writer import LogWriter
 from objects.types.custom_exceptions import TargetNotFoundException, MaxOpeningTimeExceededException
@@ -79,6 +80,9 @@ class ReloadHandler:
                     except TargetNotFoundException:
                         self._try_log_soup(soup)
                         pass
+                    except NoSuchElementException as e:
+                        self._try_log_soup(soup)
+                        pass
             self._perform_refresh(parser, attempts)
 
         self.logger.warning(f"Number of attempts exceeded limit, failed")
@@ -99,6 +103,10 @@ class ReloadHandler:
             return True
         except TargetNotFoundException as e:
             self.logger.warning("Writing content failed", exc_info=e)
+            self._try_log_soup(soup)
+            return False
+        except NoSuchElementException as e:
+            self.logger.warning("Writing locating content", exc_info=e)
             self._try_log_soup(soup)
             return False
 

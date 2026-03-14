@@ -267,6 +267,15 @@ def write_new_settings():
         orchestra(factory),
     )
     link_websites[website] = lambda factory: simple_link(factory, link_type=["a"], link_limit={"class": "nav-next"})
+    reload_websites[website] = {"sleep_before_process": True}
+    block_screen_websites[website] = lambda factory: (
+        factory.finder(
+            f"{BLOCK_HANDLER_NAME}_find_0",
+            ByCssSelectorFinder,
+            selector="div.qc-cmp2-summary-buttons > button:nth-of-type(2)",
+        ),
+        factory.main_block_handler(ButtonClickHandler, button_finder=f"${BLOCK_HANDLER_NAME}_find_0"),
+    )
 
     # novelight.net
     website = "novelight.net"
@@ -449,12 +458,15 @@ def write_new_settings():
     recognized_websites.append(website)
     chrome_websites[website] = DriverTypes.CDP
     content_websites[website] = lambda factory: (
-        factory.main_block_handler(CaptchaClickHandler),
         simple_title(factory, ["title"]),
         simple_text(factory, holder_type=["div"], holder_limit={"class": "text-left"}, text_type=["p"]),
         orchestra(factory),
     )
-    link_websites[website] = lambda factory: (simple_link(factory, link_type=["a"], link_limit={"class": "next_page"}))
+    link_websites[website] = lambda factory: (
+        factory.link_handler(press_link=False),
+        simple_link(factory, link_type=["a"], link_limit={"class": "next_page"}),
+    )
+    block_screen_websites[website] = lambda factory: (factory.main_block_handler(CaptchaClickHandler))
 
 
 write_new_settings()
