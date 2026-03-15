@@ -80,7 +80,7 @@ class ReloadHandler:
                     except TargetNotFoundException:
                         self._try_log_soup(soup)
                         pass
-                    except NoSuchElementException as e:
+                    except NoSuchElementException:
                         self._try_log_soup(soup)
                         pass
             self._perform_refresh(parser, attempts)
