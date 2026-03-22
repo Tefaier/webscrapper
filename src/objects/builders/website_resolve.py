@@ -3,7 +3,12 @@ from typing import Callable, Any
 
 from dto.request import Request
 from objects.elements.elements_finders import ByTextFinder, ByCssSelectorFinder
-from objects.elements.elements_post_processings import ExcludeByCollectorFilter, SidesCutFiltering, JammedTextConverter
+from objects.elements.elements_post_processings import (
+    ExcludeByCollectorFilter,
+    SidesCutFiltering,
+    JammedTextConverter,
+    MergeTextByNewlines,
+)
 from objects.parsing_handlers.parsing_process import ParsingProcess
 from objects.types.custom_exceptions import CommandException
 from objects.types.driver_types import DriverTypes
@@ -467,6 +472,26 @@ def write_new_settings():
         simple_link(factory, link_type=["a"], link_limit={"class": "next_page"}),
     )
     block_screen_websites[website] = lambda factory: (factory.main_block_handler(CaptchaClickHandler))
+
+    # novellunar.com
+    website = "novellunar.com"
+    recognized_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
+    content_websites[website] = lambda factory: (
+        simple_title(factory, types=["h1"]),
+        factory.post_processing(f"{POST_PROCESSING_NAME}_merge", MergeTextByNewlines),
+        simple_text(
+            factory,
+            holder_type=["article"],
+            text_type=["span"],
+            extra_post_processors=[f"{POST_PROCESSING_NAME}_merge"],
+        ),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        factory.finder(f"{FINDER_NAME}_link_0", ByTextFinder, search_types=["a"], inner_context="Next Chapter"),
+        factory.link_collector([f"{FINDER_NAME}_link_0"]),
+    )
 
 
 write_new_settings()

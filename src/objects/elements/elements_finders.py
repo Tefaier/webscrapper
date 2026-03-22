@@ -97,7 +97,7 @@ class ByTextFinder(ElementsFinder):
         origins = [soup] if search_from is None or len(search_from) == 0 else search_from
         for origin in origins:
             if isinstance(origin, Tag):
-                results += origin.find_all(self.search_types, string=self.inner_context)
+                results += origin.find_all(lambda tag: tag.name in self.search_types and tag.text == self.inner_context)
             elif isinstance(origin, PageElement):
                 results.append(origin)
         self._set_cached_results(soup, search_from, results)

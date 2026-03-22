@@ -298,3 +298,70 @@ class RepeatsFilter(ElementsPostProcessing):
         else:
             self.logger.debug(f"Deemed element to be a repetition: {element.__repr__()} prev: {self.last_string}")
         return not is_same
+
+
+class MergeTextByNewlines(ElementsPostProcessing):
+    def __init__(self, log_writer: LogWriter):
+        super().__init__(log_writer)
+
+    def process(self, soup: BeautifulSoup, elements: List[PageElement]) -> List[PageElement]:
+        before = len(elements)
+        result: List[PageElement] = []
+
+        last_replacement = {}
+
+        current_segment = None
+        for element in elements:
+            text = element.text or ""
+            parts = text.split("\n")
+            cursor = 0
+            for i, part in enumerate(parts):
+                if current_segment is None:
+                    current_segment = {"text": part, "src_elem": element, "src_offset": cursor}
+                else:
+                    # continuation of previous element last part
+                    current_segment["text"] += part
+                cursor += len(part)
+                if i < len(parts) - 1:
+                    # not the last text in current segment so needs to be finalized
+                    created = self._create_replacement_for_segment(soup, current_segment, last_replacement)
+                    result.append(created)
+                    current_segment = None
+                    cursor += 1
+        if current_segment is not None:
+            created = self._create_replacement_for_segment(soup, current_segment, last_replacement)
+            result.append(created)
+
+        self.logger.debug(f"MergeTextByNewlines result: {before}->{len(result)}")
+        return result
+
+    def _create_replacement_for_segment(self, soup: BeautifulSoup, segment: dict, last_replacement: dict):
+        src_elem = segment["src_elem"]
+        text = segment["text"]
+        offset = segment.get("src_offset", 0)
+        src_id = id(src_elem)
+
+        if isinstance(src_elem, Tag):
+            if src_id not in last_replacement:
+                repl = replace_element_with_text(soup, src_elem, text)
+                base_pos = getattr(repl, "sourcepos", None)
+                if base_pos is None:
+                    base_pos = getattr(src_elem, "sourcepos", None)
+                if base_pos is not None and offset:
+                    repl.sourcepos = int(base_pos) + int(offset)
+                last_replacement[src_id] = repl
+                return repl
+            else:
+                prev = last_replacement[src_id]
+                new_tag = soup.new_tag("p")
+                new_tag.string = text
+                prev.insert_after(new_tag)
+                new_tag.sourceline = src_elem.sourceline
+                base_pos = getattr(src_elem, "sourcepos", None) or 0
+                new_tag.sourcepos = int(base_pos) + int(offset)
+                last_replacement[src_id] = new_tag
+                return new_tag
+        else:
+            new_ns = NavigableString(text)
+            last_replacement[src_id] = new_ns
+            return new_ns
