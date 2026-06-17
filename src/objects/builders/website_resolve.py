@@ -178,7 +178,7 @@ def write_new_settings():
         .finder(f"{FINDER_NAME}_link_1", ByCssSelectorFinder, selector="div > div:nth-child(3) > div + a")
         .link_collector([f"{FINDER_NAME}_link_0", f"{FINDER_NAME}_link_1"])
     )
-    reload_websites[website] = {"sleep_before_process": True, "sleep_before_process_seconds": 5}
+    reload_websites[website] = {"sleep_before_process": True, "sleep_before_process_seconds": 1}
 
     # novelbin.com
     website = "novelbin.com"
@@ -245,7 +245,7 @@ def write_new_settings():
     # chrysanthemumgarden.com
     website = "chrysanthemumgarden.com"
     recognized_websites.append(website)
-    chrome_websites[website] = DriverTypes.Undetected
+    chrome_websites[website] = DriverTypes.Regular
     content_websites[website] = lambda factory: (
         simple_title(factory, ["title"]),
         factory.finder(
@@ -349,12 +349,14 @@ def write_new_settings():
         orchestra(factory),
     )
     link_websites[website] = lambda factory: (
+        factory.link_handler(press_link=False),
         simple_link(
             factory,
             link_type=["a"],
             link_limit={"class": "_next"},
         ),
     )
+    reload_websites[website] = {"sleep_before_process": True, "sleep_before_process_seconds": 0.5}
 
     # novelhi.com
     website = "novelhi.com"
@@ -445,7 +447,7 @@ def write_new_settings():
     website = "www.royalroad.com"
     recognized_websites.append(website)
     content_websites[website] = lambda factory: (
-        simple_text(factory, ["h1"]),
+        simple_title(factory, ["h1"]),
         simple_text(factory, ["div"], {"class": "chapter-content"}, ["p"]),
         orchestra(factory),
     )
@@ -455,7 +457,7 @@ def write_new_settings():
             ByCssSelectorFinder,
             selector="div.nav-buttons > div:nth-of-type(2) > a:first-of-type",
         ),
-        factory.link_collector([f"{FINDER_NAME}_link_0"], []),
+        factory.link_collector([f"{FINDER_NAME}_link_0"]),
     )
 
     # 18.foxaholic.com
@@ -493,6 +495,91 @@ def write_new_settings():
         factory.link_collector([f"{FINDER_NAME}_link_0"]),
     )
 
+    # wuxiaworld.eu
+    website = "wuxiaworld.eu"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        factory.finder(
+            f"{FINDER_NAME}_text",
+            ByAttributesFinder,
+            search_types=["div"],
+            search_limits={"id": "chapterText"},
+        ),
+        factory.collector(
+            f"{COLLECTOR_NAME}_text",
+            FieldTypes.Text,
+            [f"{FINDER_NAME}_text"],
+            DEFAULT_POST_PROCESSINGS,
+        ),
+        simple_title(factory, types=["h1"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        factory.finder(f"{FINDER_NAME}_link_0", ByTextFinder, search_types=["a"], inner_context=" Next Chapter>"),
+        factory.link_collector([f"{FINDER_NAME}_link_0"]),
+    )
+
+    # www.wuxiaworld.eu
+    website = "www.wuxiaworld.eu"
+    recognized_websites.append(website)
+    content_websites[website] = content_websites["wuxiaworld.eu"]
+    link_websites[website] = link_websites["wuxiaworld.eu"]
+
+    # www.isotls.com
+    website = "www.isotls.com"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"]),
+        simple_text(factory, holder_type=["div"], holder_limit={"class": "content"}, text_type=["p"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        simple_link(factory, holder_type=["div"], holder_limit={"class": "btn-group"}, link_type=["a"], link_exact=-1),
+    )
+
+    # gratuit-4049025.webador.com
+    website = "gratuit-4049025.webador.com"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h3"], {"class", "jw-heading-70"}),
+        simple_text(factory, holder_type=["main"], text_type=["p"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        factory.finder(f"{FINDER_NAME}_link_0", ByTextFinder, search_types=["a"], inner_context="\n\n                Next chapter            \n"),
+        factory.link_collector([f"{FINDER_NAME}_link_0"]),
+    )
+
+    # hollywoodnovels.blogspot.com
+    website = "hollywoodnovels.blogspot.com"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h3"], {"class", "post-title"}),
+        simple_text(factory, holder_type=["div"], holder_limit={"class": "entry-content"}, text_type=["p"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        factory.finder(f"{FINDER_NAME}_link_0", ByTextFinder, search_types=["a"], inner_context="Next Chapter >>>"),
+        factory.link_collector([f"{FINDER_NAME}_link_0"]),
+    )
+
+    # user needs to supervise and click captcha
+    # ranobes.com
+    website = "ranobes.com"
+    recognized_websites.append(website)
+    chrome_websites[website] = DriverTypes.CDP
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"]),
+        # either of two are required
+        simple_text(factory, holder_type=["div"], holder_limit={"id": "arrticle"}, text_type=["p"]),
+        #split_text(factory, holder_type=["div"], holder_limit={"id": "arrticle"}, split_by=["br", "div"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        simple_link(factory, link_type=["a"], link_limit={"id": "next"}),
+    )
+
+
 
 write_new_settings()
 
@@ -501,7 +588,6 @@ write_new_settings()
 active_process_dicts = {
     "ranobehub.org": {"chrome": False},
     "jaomix.ru": {"chrome": False},
-    "ranobes.com": {"chrome": True},
     "ranobes.net": {"chrome": True, "sleep": True},
     "tl.rulate.ru": {
         "chrome": True,
@@ -523,10 +609,8 @@ active_process_dicts = {
     "younettranslate.com": {"chrome": False},
     "strictlybromance.com": {"chrome": True},
     "kinkytranslations.com": {"chrome": False},
-    "www.isotls.com": {"chrome": False},
     "exiledrebelsscanlations.com": {"chrome": False},
     "moonlightnovel.com": {"chrome": False},
-    "www.wuxiaworld.eu": {"chrome": False},
     "www.wuxiabee.com": {"chrome": True},
     "wuxiaworld.ru": {"chrome": False},
     "huahualibrary.wordpress.com": {},
@@ -588,14 +672,6 @@ active_parser_dicts = {
         "link_l": {"class": "next"},
         "link_p": 0,
         "link_container": "li",
-    },
-    "ranobes.com": {
-        "text_h": ["p", "blockquote"],
-        "text_l": {"id": "arrticle"},
-        # "tags_used": ["br", "div"]
-        "title_h": "h1",
-        "link_h": "a",
-        "link_l": {"id": "next"},
     },
     "ranobes.net": {
         "left": 0,
@@ -726,17 +802,6 @@ active_parser_dicts = {
         "link_h": "a",
         "link_l": {"text": ">>>"},
     },
-    "www.isotls.com": {
-        "left": 1,
-        "right": 1,
-        "left_image": 1,
-        "text_h": "p",
-        "text_l": {"class": "content"},
-        "link_h": "a",
-        "link_l": {"class": "btn-group"},
-        "link_container": "div",
-        "link_p": 2,
-    },
     "exiledrebelsscanlations.com": {
         "text_h": "p",
         "text_l": {"id": "wtr-content"},
@@ -752,14 +817,6 @@ active_parser_dicts = {
         "title_h": "empty",
         "link_h": "a",
         "link_l": {"rel": "next"},
-    },
-    "www.wuxiaworld.eu": {
-        "text_h": "div",
-        "text_l": {"id": "chapterText"},
-        "title_h": "empty",
-        "link_h": "a",
-        "link_l": {"rel": "noreferrer"},
-        "link_p": -1,
     },
     "www.wuxiabee.com": {
         "text_h": "p",

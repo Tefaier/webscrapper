@@ -78,7 +78,12 @@ class LinkHandler:
             return self._resolve_url_without_driver(current_url, link_el)
 
         if self.press_link:
-            return self._click_and_resolve(current_url, link_el)
+            try:
+                return self._click_and_resolve(current_url, link_el)
+            except Exception as e:
+                self.logger.debug(f"Failed to click link, will try once again: {e}")
+                link_el = self._get_link_element(soup)
+                return self._click_and_resolve(current_url, link_el)
         else:
             return self._navigate_by_href(current_url, link_el)
 

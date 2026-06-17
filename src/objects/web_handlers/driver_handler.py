@@ -1,3 +1,4 @@
+import time
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Union
 
@@ -125,10 +126,11 @@ class RegularDriverHandler(DriverHandler):
     def _create_driver(self) -> DriverMethods:
         driver = Driver(
             uc=False,
-            headless=True,
+            headless=False,
             user_data_dir=self.chrome_directory or "/tmp/.google_chrome",
             **self._build_default_settings(),
         )
+        time.sleep(0.2)
         driver.set_window_size(self.window_width, self.window_height)
         return driver
 
