@@ -1,6 +1,6 @@
 import time
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Any
 
 from selenium.webdriver.common.by import By
 from seleniumbase.undetected import WebElement
@@ -64,9 +64,8 @@ class DriverHandler(ABC):
     def get_url(self) -> str:
         return self.driver.get_current_url()
 
-    def execute(self, script: str, *args) -> Self:
-        self.driver.execute_script(script, *args)
-        return self
+    def execute(self, script: str, *args) -> Any:
+        return self.driver.execute_script(script, *args)
 
     @abstractmethod
     def get(self, url: str) -> Self:
@@ -105,10 +104,6 @@ class DriverHandler(ABC):
 
     def unsafe_driver_get(self):
         return self.driver
-
-    def scroll(self) -> Self:
-        self.execute("window.scrollTo(0, document.body.scrollHeight);")
-        return self
 
 
 class RegularDriverHandler(DriverHandler):
@@ -264,3 +259,7 @@ class CdpDriverHandler(DriverHandler):
         self.driver.connect()
         self.driver.quit()
         return self
+
+    @override
+    def execute(self, script: str, *args) -> Self:
+        return self.driver.execute_cdp_cmd(script, {})

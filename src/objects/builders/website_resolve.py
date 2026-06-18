@@ -14,7 +14,7 @@ from objects.types.custom_exceptions import CommandException
 from objects.types.driver_types import DriverTypes
 from objects.types.order_stategy import OrderStrategy
 from objects.web_handlers.block_screen_handler import ButtonClickHandler, CaptchaClickHandler
-from objects.web_handlers.scroll_strategy import BottomScroll
+from objects.web_handlers.scroll_strategy import BottomScroll, LimitedScroll
 from utils.extra_factory_functions import *
 
 
@@ -24,7 +24,7 @@ def resolve_website(website: str, request: Request) -> ParsingProcess:
     if website in chrome_websites:
         factory.selenium(chrome_websites[website])
     if website in scroll_websites.keys():
-        factory.scroll(BottomScroll, **scroll_websites[website])
+        factory.scroll(scroll_websites[website].get("type", BottomScroll), **scroll_websites[website])
     if website in block_screen_websites:
         block_screen_websites[website](factory)
     if website in reload_websites:
@@ -579,7 +579,78 @@ def write_new_settings():
         simple_link(factory, link_type=["a"], link_limit={"id": "next"}),
     )
 
+    # www.foxaholic.com
+    website = "www.foxaholic.com"
+    recognized_websites.append(website)
+    chrome_websites[website] = DriverTypes.CDP
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"]),
+        simple_text(factory, holder_type=["div"], holder_limit={"class": "reading-content"}, text_type=["p"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        simple_link(factory, link_type=["a"], link_limit={"class": "next_page"}),
+    )
+    reload_websites[website] = {"sleep_before_process": True, "sleep_before_process_seconds": 3}
 
+    # www.wattpad.com
+    website = "www.wattpad.com"
+    recognized_websites.append(website)
+    chrome_websites[website] = DriverTypes.Undetected
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"], {"class": "h2"}),
+        simple_text(factory, holder_type=["div"], holder_limit={"class": "panel-reading"}, text_type=["p"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        simple_link(factory, holder_type=["div"], holder_limit={"id": "story-part-navigation"}, link_type=["a"]),
+    )
+    reload_websites[website] = {"sleep_before_process": True, "sleep_before_process_seconds": 1}
+    scroll_websites[website] = {}
+
+    # inuekohouse.wordpress.com
+    website = "inuekohouse.wordpress.com"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, ["h1"]),
+        factory.finder(
+            f"{FINDER_NAME}_exclude_0",
+            ByAttributesFinder,
+            search_types=["p"],
+            search_limits={"class": "has-white-color"},
+        ),
+        factory.post_processing(
+            f"{POST_PROCESSING_NAME}_text_0", ExcludeByCollectorFilter, finder=f"${FINDER_NAME}_exclude_0"
+        ),
+        simple_text(
+            factory,
+            holder_type=["div"],
+            holder_limit={"class": "entry-content"},
+            text_type=["p"],
+            text_limit={"class": "wp-block-paragraph"},
+            extra_post_processors=[f"{POST_PROCESSING_NAME}_text_0"]
+        ),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        factory.finder(f"{FINDER_NAME}_link_0", ByTextFinder, search_types=["a"], inner_context="Next"),
+        factory.link_collector([f"{FINDER_NAME}_link_0"]),
+    )
+
+    # celtytranslates.livejournal.com
+    website = "celtytranslates.livejournal.com"
+    chrome_websites[website] = DriverTypes.Undetected
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, types=["h1"], limits={"class": "aentry-post__title"}),
+        simple_text(factory, holder_type=["div"], holder_limit={"class": "aentry-post__text"}, text_type=["p"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        simple_link(factory, link_type=["a"], link_limit={"title": "Next post"}),
+    )
+    reload_websites[website] = {"sleep_before_process": True, "sleep_before_process_seconds": 0.3}
+    scroll_websites[website] = {"type": LimitedScroll, "scroll_times": 1, "scroll_by": 900}
 
 write_new_settings()
 
@@ -596,14 +667,9 @@ active_process_dicts = {
         "button_type": "",
         "button_limit": {"name": "ok"},
     },
-    "www.wattpad.com": {"chrome": True, "scroll": True, "min_par": 1, "wait": True},
     "www.readlightnovel.me": {"chrome": False},
     "www.mtlnovel.com": {"chrome": True, "clearing": True, "sleep": True},
     "www.mtlnovels.com": {},  # {"chrome": True, "clearing": True, "chrome_undetected": True},
-    "www.foxaholic.com": {
-        "chrome": True,
-        "wait": True,
-    },
     "rainbow-reads.com": {"chrome": False},
     "danmeiextra.home.blog": {"chrome": False},
     "younettranslate.com": {"chrome": False},
@@ -694,18 +760,6 @@ active_parser_dicts = {
         "link_p": 0,
         "link_container": "li",
     },
-    "www.wattpad.com": {
-        "left": 0,
-        "right": 0,
-        "text_h": "p",
-        "text_l": {"class", "part-content"},
-        "text_container": "div",
-        "title_h": "h1",
-        "title_l": {"class", "h2"},
-        "link_h": "a",
-        "link_l": {"id": "story-part-navigation"},
-        "link_container": "div",
-    },
     "www.readlightnovel.me": {
         "left": 1,
         "right": 0,
@@ -735,16 +789,6 @@ active_parser_dicts = {
         "title_l": None,
         "link_h": "a",
         "link_l": {"class": "next"},
-    },
-    "www.foxaholic.com": {
-        "left": 0,
-        "right": 0,
-        "text_h": "p",
-        "text_l": {"class": "entry-content"},
-        "title_h": "title",
-        "title_l": None,
-        "link_h": "a",
-        "link_l": {"class": "next_page"},
     },
     "rainbow-reads.com": {
         "left": 0,

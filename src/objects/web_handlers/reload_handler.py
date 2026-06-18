@@ -51,7 +51,7 @@ class ReloadHandler:
         self.max_attempts = max_attempts
         self.max_page_load_wait_seconds = max_page_load_wait_seconds
         self.page_load_check_interval_seconds = page_load_check_interval_seconds
-        self.last_error_soup_string = ""
+        self.last_error_soup_string = None
 
     # ------------------------
     # Public API
@@ -126,7 +126,7 @@ class ReloadHandler:
 
     def _try_log_soup(self, soup: BeautifulSoup):
         new_soup = soup.prettify()
-        if self.last_error_soup_string != new_soup:
+        if self.last_error_soup_string is None or self.last_error_soup_string != new_soup:
             self.last_error_soup_string = new_soup
             log_version = self.last_error_soup_string.replace("\n", "\t\n")
             self.logger.warning(f"Failed with soup: \n{log_version}")

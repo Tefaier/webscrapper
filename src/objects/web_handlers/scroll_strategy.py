@@ -45,6 +45,25 @@ class BottomScroll(ScrollStrategy):
             new_height = driver.execute("return document.body.scrollHeight")
             if new_height == last_height:
                 self.logger.debug(f"Finished scrolling at {i + 1} attempt")
-                break
+                return
             last_height = new_height
         self.logger.debug(f"All scroll attempts exhausted {self.scroll_max_attempts}")
+
+
+class LimitedScroll(ScrollStrategy):
+    def __init__(
+        self,
+        log_writer: LogWriter,
+        scroll_pause_time: float = SCROLL_PAUSE_TIME,
+        scroll_times: int = SCROLL_MAX_ATTEMPTS,
+        scroll_by: int = SCROLL_BY,
+    ):
+        self.logger = log_writer.get_logger(type(self).__name__)
+        self.scroll_pause_time = scroll_pause_time
+        self.scroll_times = scroll_times
+        self.scroll_by = scroll_by
+
+    def handle(self, driver: DriverHandler, soup: BeautifulSoup, attempt: int) -> None:
+        for i in range(self.scroll_times):
+            driver.execute(f"window.scrollTo(0, {self.scroll_by * (i + 1)});")
+            time.sleep(self.scroll_pause_time)
