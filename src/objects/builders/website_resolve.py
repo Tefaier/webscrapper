@@ -666,6 +666,18 @@ def write_new_settings():
         simple_link(factory, link_type=["a"], link_limit={"title": "Shortcut: [Ctrl] + [->]"}),
     )
 
+    # novelingua.com
+    website = "novelingua.com"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_text(factory, holder_type=["div"], holder_limit={"class": "pagelayer-text-holder"}, text_type=["p"], text_limit={"dir": "ltr"}),
+        factory.orchestra([f"{COLLECTOR_NAME}_text"]),
+    )
+    link_websites[website] = lambda factory: (
+        factory.finder(f"{FINDER_NAME}_link_0", ByTextFinder, search_types=["a"], inner_context="\nNext Chapter\n"),
+        factory.link_collector([f"{FINDER_NAME}_link_0"]),
+    )
+
 write_new_settings()
 
 # FROM HERE BACKWARD COMPATIBILITY LIMITED SUPPORT
