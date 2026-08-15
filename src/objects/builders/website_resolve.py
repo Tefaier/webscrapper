@@ -448,7 +448,8 @@ def write_new_settings():
     recognized_websites.append(website)
     content_websites[website] = lambda factory: (
         simple_title(factory, ["h1"]),
-        simple_text(factory, ["div"], {"class": "chapter-content"}, ["p"]),
+        factory.post_processing(f"{POST_PROCESSING_NAME}_text_0", SplitTagContentByInnerTags, split_tag_names = ["br"]),
+        simple_text(factory, ["div"], {"class": "chapter-content"}, ["p"], extra_post_processors=[f"{POST_PROCESSING_NAME}_text_0"]),
         orchestra(factory),
     )
     link_websites[website] = lambda factory: (
@@ -651,6 +652,19 @@ def write_new_settings():
     )
     reload_websites[website] = {"sleep_before_process": True, "sleep_before_process_seconds": 0.3}
     scroll_websites[website] = {"type": LimitedScroll, "scroll_times": 1, "scroll_by": 900}
+
+    # www.scribblehub.com
+    website = "www.scribblehub.com"
+    chrome_websites[website] = DriverTypes.CDP
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, types=["div"], limits={"class": "chapter-title"}),
+        simple_text(factory, holder_type=["div"], holder_limit={"class": "chp_raw"}, text_type=["p"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        simple_link(factory, link_type=["a"], link_limit={"title": "Shortcut: [Ctrl] + [->]"}),
+    )
 
 write_new_settings()
 
