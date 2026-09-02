@@ -492,7 +492,7 @@ def write_new_settings():
         orchestra(factory),
     )
     link_websites[website] = lambda factory: (
-        factory.finder(f"{FINDER_NAME}_link_0", ByTextFinder, search_types=["a"], inner_context="Next Chapter"),
+        factory.finder(f"{FINDER_NAME}_link_0", ByTextFinder, search_types=["button"], inner_context="Next Chapter"),
         factory.link_collector([f"{FINDER_NAME}_link_0"]),
     )
 
@@ -675,6 +675,32 @@ def write_new_settings():
     )
     link_websites[website] = lambda factory: (
         factory.finder(f"{FINDER_NAME}_link_0", ByTextFinder, search_types=["a"], inner_context="\nNext Chapter\n"),
+        factory.link_collector([f"{FINDER_NAME}_link_0"]),
+    )
+
+    # snowycodex.com
+    website = "snowycodex.com"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        factory.finder(f"{FINDER_NAME}_title_0", ByCssSelectorFinder, selector="div.entry-content > h2")
+        .collector(f"{COLLECTOR_NAME}_title", FieldTypes.Text, [f"{FINDER_NAME}_title_0"], DEFAULT_POST_PROCESSINGS)
+        .finder(
+            f"{FINDER_NAME}_text_0",
+            ByAttributesFinder,
+            search_types=["div"],
+            search_limits={"class": "entry-content"},
+        )
+        .finder(f"{FINDER_NAME}_text_1", ByCssSelectorFinder, selector="p > span")
+        .collector(
+            f"{COLLECTOR_NAME}_text",
+            FieldTypes.Text,
+            [f"{FINDER_NAME}_text_0", f"{FINDER_NAME}_text_1"],
+            DEFAULT_POST_PROCESSINGS,
+        ),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        factory.finder(f"{FINDER_NAME}_link_0", ByTextFinder, search_types=["a"], inner_context="Next Chapter"),
         factory.link_collector([f"{FINDER_NAME}_link_0"]),
     )
 
