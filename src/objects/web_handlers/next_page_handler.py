@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from abc import ABC, abstractmethod
 from typing import Optional, List
 from urllib.parse import urljoin
 
@@ -24,7 +25,12 @@ from settings.web_handlers_defaults import *
 from utils.web_functions import xpath_soup
 
 
-class LinkHandler:
+class NextPageHandler(ABC):
+    @abstractmethod
+    def navigate(self, current_url: str, soup: BeautifulSoup) -> str: ...
+
+
+class LinkNextPageHandler(NextPageHandler):
     """
     Handles navigation to the next page based on link elements found via ElementsCollector.
 
@@ -170,3 +176,42 @@ class LinkHandler:
             time.sleep(0.3)
         self.logger.debug(f"Url change wait expired: {self.wait_for_url_change_seconds}s")
         return False
+
+
+class ScrollNextPageHandler(NextPageHandler):
+    def __init__(
+        self,
+        log_writer: LogWriter,
+        driver_handler: DriverHandler = None,
+        reload_after: bool = True,
+        wait_for_url_change_seconds: float = WAIT_FOR_URL_CHANGE_SECONDS,
+        scroll_max_attempts: int = SCROLL_MAX_ATTEMPTS,
+    ) -> None:
+        if driver_handler is None:
+            raise RuntimeError("Driver is required for ScrollNextPageHandler")
+        self.logger = log_writer.get_logger(type(self).__name__)
+        self.driver = driver_handler
+        self.reload_after = reload_after
+        self.wait_for_url_change_seconds = wait_for_url_change_seconds
+        self.scroll_max_attempts = scroll_max_attempts
+
+    def navigate(self, current_url: str, soup: BeautifulSoup) -> str:
+        last_height = self.driver.execute("return document.body.scrollHeight")
+        for i in range(self.scroll_max_attempts):
+            if hasattr(self.driver.unsafe_driver_get(), "scroll_to_bottom"):
+                self.driver.unsafe_driver_get().scroll_to_bottom()
+            else:
+                self.driver.execute("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(self.wait_for_url_change_seconds)
+            new_url = self.driver.get_url()
+            if current_url != new_url:
+                if self.reload_after:
+                    self.driver.reload()
+                return new_url
+            new_height = self.driver.execute("return document.body.scrollHeight")
+            if new_height == last_height:
+                self.logger.debug(f"Finished scrolling at {i + 1} attempt")
+                raise NextChapterNotReachedException(f"Scrolling at {i + 1} attempt failed")
+            last_height = new_height
+        self.logger.debug(f"All scroll attempts exhausted {self.scroll_max_attempts}")
+        raise NextChapterNotReachedException(f"Url not changed after {self.scroll_max_attempts} attempts")

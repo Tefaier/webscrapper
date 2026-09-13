@@ -11,7 +11,7 @@ from objects.types.custom_exceptions import UnsupportedArgumentsException
 from objects.types.driver_types import DriverTypes
 from objects.types.file_extensions import FileExtensions
 from objects.web_handlers.driver_handler import DriverHandler
-from objects.web_handlers.link_handler import LinkHandler
+from objects.web_handlers.next_page_handler import LinkNextPageHandler, ScrollNextPageHandler
 from objects.web_handlers.scroll_strategy import ScrollStrategy, NoScroll
 from objects.web_handlers.block_screen_handler import (
     BlockScreenHandler,
@@ -54,7 +54,8 @@ class ExtendedFactory:
         self._counters: Dict[str, int] = {}
         self._driver_handler_name: Optional[str] = None
         self._orchestra_called: bool = False
-        self._link_handler_called: bool = False
+        self._next_page_handler_called: bool = False
+        self._link_collector_required: bool = True
         self._link_collector_called: bool = False
         self._reload_handler_called: bool = False
         self._parser_called: bool = False
@@ -69,13 +70,12 @@ class ExtendedFactory:
         # core endpoints
         self.builder.register(ORDERER_NAME, ElementsOrderer)
         self.builder.register(ORCHESTRA_NAME, ElementsOrchestra)
-        self.builder.register(LINK_HANDLER_NAME, LinkHandler)
         self.builder.register(RELOAD_HANDLER_NAME, ReloadHandler)
         self.builder.register(PARSER_NAME, ContentParser)
         self.builder.register(PARSING_PROCESS_NAME, ParsingProcess)
         self.builder.add_config(
             PARSING_PROCESS_NAME,
-            {"log_writer": f"${LOG_WRITER_NAME}", "parser": f"${PARSER_NAME}", "link_handler": f"${LINK_HANDLER_NAME}"},
+            {"log_writer": f"${LOG_WRITER_NAME}", "parser": f"${PARSER_NAME}", "next_page_handler": f"${NEXT_PAGE_HANDLER_NAME}"},
         )
 
         # default strategies
@@ -211,17 +211,18 @@ class ExtendedFactory:
         )
         return self
 
-    def link_handler(
+    def link_next_page(
         self,
         press_link: Optional[bool] = None,
         reload_after: Optional[bool] = None,
         link_pure_click: Optional[bool] = None,
         wait_for_url_change_seconds: Optional[float] = None,
     ) -> Self:
-        self._link_handler_called = True
-        # override default link handler wiring
+        self._next_page_handler_called = True
+        self._link_collector_required = True
+        self.builder.register(NEXT_PAGE_HANDLER_NAME, LinkNextPageHandler)
         self.builder.add_config(
-            LINK_HANDLER_NAME,
+            NEXT_PAGE_HANDLER_NAME,
             _clear_nones(
                 {
                     "log_writer": f"${LOG_WRITER_NAME}",
@@ -231,6 +232,30 @@ class ExtendedFactory:
                     "reload_after": reload_after,
                     "link_pure_click": link_pure_click,
                     "wait_for_url_change_seconds": wait_for_url_change_seconds,
+                }
+            ),
+        )
+        return self
+
+    def scroll_next_page(
+        self,
+        reload_after: Optional[bool] = None,
+        wait_for_url_change_seconds: Optional[float] = None,
+        scroll_max_attempts: Optional[int] = None,
+    ) -> Self:
+        self._next_page_handler_called = True
+        self._link_collector_required = False
+        # override default link handler wiring
+        self.builder.register(NEXT_PAGE_HANDLER_NAME, ScrollNextPageHandler)
+        self.builder.add_config(
+            NEXT_PAGE_HANDLER_NAME,
+            _clear_nones(
+                {
+                    "log_writer": f"${LOG_WRITER_NAME}",
+                    "driver_handler": self._driver_handler_name,
+                    "reload_after": reload_after,
+                    "wait_for_url_change_seconds": wait_for_url_change_seconds,
+                    "scroll_max_attempts": scroll_max_attempts,
                 }
             ),
         )
@@ -264,15 +289,15 @@ class ExtendedFactory:
     # -------- finalize --------
     def finish(self) -> ParsingProcess:
         # ensure necessary things are created
-        if not self._link_collector_called:
+        if not self._link_collector_called and self._link_collector_required:
             raise UnsupportedArgumentsException(
                 "Link collector is not configured. Call link_collector(...) before finish()."
             )
         if not self._orchestra_called:
             raise UnsupportedArgumentsException("Orchestra is not configured. Call orchestra(...) before finish().")
         # here to link driver in case it was created
-        if not self._link_handler_called:
-            self.link_handler()
+        if not self._next_page_handler_called:
+            self.link_next_page()
         if not self._reload_handler_called:
             self.reload_handler()
         if not self._parser_called:

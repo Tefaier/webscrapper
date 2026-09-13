@@ -165,7 +165,8 @@ def write_new_settings():
     chrome_websites[website] = DriverTypes.Regular
     content_websites[website] = lambda factory: (
         simple_title(factory, ["h1"]),
-        simple_text(factory, ["div"], {"class": "text-content"}),
+        factory.post_processing(f"{POST_PROCESSING_NAME}_text_0", SplitTagContentByInnerTags, split_tag_names = ["br"]),
+        simple_text(factory, ["div"], {"class": "text-content"}, extra_post_processors=[f"{POST_PROCESSING_NAME}_text_0"]),
         factory.finder(f"{FINDER_NAME}_image_0", ByAttributesFinder, search_types=["img"]),
         factory.collector(
             f"{COLLECTOR_NAME}_image", FieldTypes.Image, [f"{FINDER_NAME}_text_0", f"{FINDER_NAME}_image_0"]
@@ -304,7 +305,7 @@ def write_new_settings():
         orchestra(factory),
     )
     link_websites[website] = lambda factory: (
-        factory.link_handler(press_link=False),
+        factory.link_next_page(press_link=False),
         simple_link(factory, holder_type=["div"], holder_limit={"class": "pagination"}, link_type=["a"], link_exact=-1),
     )
 
@@ -349,7 +350,7 @@ def write_new_settings():
         orchestra(factory),
     )
     link_websites[website] = lambda factory: (
-        factory.link_handler(press_link=False),
+        factory.link_next_page(press_link=False),
         simple_link(
             factory,
             link_type=["a"],
@@ -471,7 +472,7 @@ def write_new_settings():
         orchestra(factory),
     )
     link_websites[website] = lambda factory: (
-        factory.link_handler(press_link=False),
+        factory.link_next_page(press_link=False),
         simple_link(factory, link_type=["a"], link_limit={"class": "next_page"}),
     )
     block_screen_websites[website] = lambda factory: (factory.main_block_handler(CaptchaClickHandler))
@@ -704,6 +705,32 @@ def write_new_settings():
         factory.link_collector([f"{FINDER_NAME}_link_0"]),
     )
 
+    # exiledrebelsscanlations.com
+    website = "exiledrebelsscanlations.com"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, types=["title"]),
+        factory.post_processing(f"{POST_PROCESSING_NAME}_text_0", SidesCutFiltering, cut_from_beginning=2),
+        simple_text(factory, holder_type=["div"], holder_limit={"id": "wtr-content"}, text_type=["p"], extra_post_processors=[f"{POST_PROCESSING_NAME}_text_0"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        simple_link(factory, holder_type=["div"], holder_limit={"class": "wp-post-navigation-next"}, link_type=["a"]),
+    )
+
+    # www.webnovel.com
+    website = "www.webnovel.com"
+    recognized_websites.append(website)
+    content_websites[website] = lambda factory: (
+        simple_title(factory, types=["h1"]),
+        simple_text(factory, holder_type=["div"], holder_limit={"class": "cha-content"}, text_type=["p"]),
+        orchestra(factory),
+    )
+    link_websites[website] = lambda factory: (
+        next_by_scroll(factory, True, 0.2, 2),
+    )
+
+
 write_new_settings()
 
 # FROM HERE BACKWARD COMPATIBILITY LIMITED SUPPORT
@@ -727,7 +754,6 @@ active_process_dicts = {
     "younettranslate.com": {"chrome": False},
     "strictlybromance.com": {"chrome": True},
     "kinkytranslations.com": {"chrome": False},
-    "exiledrebelsscanlations.com": {"chrome": False},
     "moonlightnovel.com": {"chrome": False},
     "www.wuxiabee.com": {"chrome": True},
     "wuxiaworld.ru": {"chrome": False},
@@ -897,15 +923,6 @@ active_parser_dicts = {
         "title_p": 1,
         "link_h": "a",
         "link_l": {"text": ">>>"},
-    },
-    "exiledrebelsscanlations.com": {
-        "text_h": "p",
-        "text_l": {"id": "wtr-content"},
-        "link_h": "a",
-        "link_l": {"class": "wp-post-navigation-next"},
-        "link_container": "div",
-        "title_h": "title",
-        "left": 2,
     },
     "moonlightnovel.com": {
         "text_h": "p",

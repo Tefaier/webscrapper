@@ -104,6 +104,15 @@ def simple_link(
     return factory.link_collector(finders, posts)
 
 
+def next_by_scroll(
+    factory: ExtendedFactory,
+    reload_after: Optional[bool] = None,
+    wait_for_url_change_seconds: Optional[float] = None,
+    scroll_max_attempts: Optional[int] = None,
+) -> ExtendedFactory:
+    return factory.scroll_next_page(reload_after, wait_for_url_change_seconds, scroll_max_attempts)
+
+
 def orchestra(factory: ExtendedFactory, with_images: bool = False) -> ExtendedFactory:
     collectors = [f"{COLLECTOR_NAME}_title", f"{COLLECTOR_NAME}_text"]
     if with_images:

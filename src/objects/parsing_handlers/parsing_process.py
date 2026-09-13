@@ -5,7 +5,7 @@ from typing import Dict, Any
 from objects.file_handlers.log_writer import LogWriter
 from objects.parsing_handlers.content_parser import ContentParser
 from objects.types.custom_exceptions import TargetNotFoundException
-from objects.web_handlers.link_handler import LinkHandler
+from objects.web_handlers.next_page_handler import LinkNextPageHandler, NextPageHandler
 
 
 class ParsingProcess:
@@ -20,11 +20,11 @@ class ParsingProcess:
     a structured result with progress and error information (if any).
     """
 
-    def __init__(self, log_writer: LogWriter, parser: ContentParser, link_handler: LinkHandler) -> None:
+    def __init__(self, log_writer: LogWriter, parser: ContentParser, next_page_handler: NextPageHandler) -> None:
         self.log_writer = log_writer
         self.logger = log_writer.get_logger(type(self).__name__)
         self.parser = parser
-        self.link_handler = link_handler
+        self.next_page_handler = next_page_handler
 
     def parse_iterations(self, start_url: str, iterations: int) -> Dict[str, Any]:
         """
@@ -63,7 +63,7 @@ class ParsingProcess:
 
                 # Try to follow the next link; if missing, we finish early successfully
                 try:
-                    next_url = self.link_handler.navigate(current_url, soup)
+                    next_url = self.next_page_handler.navigate(current_url, soup)
                 except TargetNotFoundException as e:
                     self.logger.warning(f"Didn't find link - early termination", exc_info=e)
                     processed += 1
